@@ -7,9 +7,10 @@ import type { EstimateRecord } from '../lib/db.ts';
 interface CloudSyncProps {
     customers: CustomerInfo[];
     jobs: EstimateRecord[];
+    onSyncToCalendar?: (job: EstimateRecord) => Promise<void>;
 }
 
-const CloudSync: React.FC<CloudSyncProps> = ({ customers, jobs }) => {
+const CloudSync: React.FC<CloudSyncProps> = ({ customers, jobs, onSyncToCalendar }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [status, setStatus] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +55,26 @@ const CloudSync: React.FC<CloudSyncProps> = ({ customers, jobs }) => {
         await client.connect(transport);
         mcpClient.current = client;
         return client;
+    };
+
+    const syncJobToCalendar = async (job: EstimateRecord) => {
+        if (!onSyncToCalendar) {
+            console.warn('Calendar sync handler not provided');
+            return;
+        }
+
+        setIsLoading(true);
+        showStatus('Syncing to Google Calendar...', 0);
+
+        try {
+            await onSyncToCalendar(job);
+            showStatus('✅ Synced to calendar!');
+        } catch (error) {
+            console.error("Calendar sync failed:", error);
+            showStatus('❌ Calendar sync failed.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleBackupToDrive = async () => {

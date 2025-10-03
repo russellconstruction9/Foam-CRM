@@ -10,6 +10,7 @@ interface ActionHandlers {
     addToSchedule: (job: Omit<Job, 'id'>) => Job;
     sendEmail: (to: string, subject: string, body: string) => Promise<void>;
     deductInventoryForJob: (job: EstimateRecord) => Promise<void>;
+    syncToCalendar: (job: EstimateRecord) => Promise<void>;
 }
 
 // Function to replace placeholders like [customer_name] in strings
@@ -110,6 +111,14 @@ const executeAction = async (automation: Automation, data: CustomerInfo | Estima
                 await handlers.deductInventoryForJob(data as EstimateRecord);
             } else {
                 console.warn(`Automation "${automation.name}" skipped: 'update_inventory' action can only be triggered by job-related events.`);
+            }
+            break;
+
+        case 'sync_to_calendar':
+            if ('estimateNumber' in data) { // Check if data is an EstimateRecord
+                await handlers.syncToCalendar(data as EstimateRecord);
+            } else {
+                console.warn(`Automation "${automation.name}" skipped: 'sync_to_calendar' action can only be triggered by job-related events.`);
             }
             break;
     }

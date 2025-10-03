@@ -205,11 +205,32 @@ const App: React.FC = () => {
       }
   };
 
+  const handleSyncToCalendar = async (job: EstimateRecord) => {
+      console.log("Syncing job to Google Calendar:", job.estimateNumber);
+
+      // Use Zapier MCP to create a Google Calendar event
+      const eventTitle = `${job.calcData.customer.name} - ${job.estimateNumber}`;
+      const eventDescription = `Job: ${job.estimateNumber}\nCustomer: ${job.calcData.customer.name}\nAddress: ${job.calcData.customer.address}\nPhone: ${job.calcData.customer.phone}\nStatus: ${job.status}`;
+      const eventLocation = job.calcData.customer.address;
+
+      // For now, we'll use a placeholder date (you can enhance this based on your schedule)
+      const eventStart = new Date().toISOString();
+      const eventEnd = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // 2 hours later
+
+      console.log(`Calendar Event: ${eventTitle} at ${eventLocation}`);
+      console.log(`Start: ${eventStart}, End: ${eventEnd}`);
+      console.log(`Description: ${eventDescription}`);
+
+      // TODO: Integrate with actual Zapier MCP server to create calendar event
+      // This will require the Zapier MCP client similar to the Google Drive integration
+  };
+
   const automationActionHandlers = {
       createTask: handleAddTask,
       addToSchedule: addCalendarJob,
       sendEmail: handleSendEmail,
       deductInventoryForJob: handleDeductInventoryForJob,
+      syncToCalendar: handleSyncToCalendar,
   };
 
   const loadData = useCallback(async () => {
