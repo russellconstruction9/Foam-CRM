@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(echo $APPDATA)",
+      "Bash(if not exist \"C:\\Users\\russe\\AppData\\Roaming\\Claude\" mkdir \"C:\\Users\\russe\\AppData\\Roaming\\Claude\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

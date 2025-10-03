@@ -1,7 +1,7 @@
 
 import { Automation, Task, Job } from '../components/types.ts';
 import { EstimateRecord } from './db.ts';
-import { CustomerInfo } from '../components/PDF.tsx';
+import { CustomerInfo } from '../components/EstimatePDF.tsx';
 import { fmtInput } from '../components/utils.ts';
 
 // Type for the action handler functions passed from App.tsx
