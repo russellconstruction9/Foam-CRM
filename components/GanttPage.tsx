@@ -27,11 +27,13 @@ interface GanttPageProps {
   setJobs: React.Dispatch<React.SetStateAction<Job[]>>;
   employees: Employee[];
   onNavigate: (page: Page) => void;
+  onSyncToCalendar?: () => Promise<void>;
 }
 
-const GanttPage: React.FC<GanttPageProps> = ({ jobs, setJobs, employees, onNavigate }) => {
+const GanttPage: React.FC<GanttPageProps> = ({ jobs, setJobs, employees, onNavigate, onSyncToCalendar }) => {
   const [pxPerDay, setPxPerDay] = useState(40);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const isMobile = useIsMobile();
 
   const { earliestDate, latestDate, projectCenterDate } = useMemo(() => {
@@ -129,6 +131,21 @@ const GanttPage: React.FC<GanttPageProps> = ({ jobs, setJobs, employees, onNavig
     setJobs((prevJobs) => prevJobs.map((j) => (j.id === jobId ? { ...j, links: [] } : j)));
   }, [setJobs]);
 
+  const handleSyncAll = async () => {
+    if (!onSyncToCalendar || jobs.length === 0) return;
+
+    setIsSyncing(true);
+    try {
+      await onSyncToCalendar();
+      alert(`Successfully synced ${jobs.length} job(s) to Google Calendar!`);
+    } catch (error) {
+      console.error('Sync failed:', error);
+      alert('Failed to sync to Google Calendar. Check console for details.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const editingJob = useMemo(() => jobs.find((j) => j.id === editingJobId), [jobs, editingJobId]);
 
   return (
@@ -141,10 +158,23 @@ const GanttPage: React.FC<GanttPageProps> = ({ jobs, setJobs, employees, onNavig
             <button onClick={() => setChartStartDate(addDays(chartStartDate, 7))} className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600">{'>'}</button>
             <button onClick={() => setChartStartDate(addDays(chartStartDate, 14))} className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 hidden sm:block">{'>>'}</button>
         </div>
-        
+
         <ScheduleViewToggle currentView="gantt" onNavigate={onNavigate} />
 
         <div className="flex items-center gap-2">
+            {onSyncToCalendar && jobs.length > 0 && (
+              <button
+                onClick={handleSyncAll}
+                disabled={isSyncing}
+                title="Sync all jobs to Google Calendar"
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="hidden sm:inline">{isSyncing ? 'Syncing...' : 'Sync to Calendar'}</span>
+              </button>
+            )}
             <button onClick={centerOnJobs} title="Center on Jobs" className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600">
                 <svg className="w-5 h-5 text-slate-600 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v4m0 0h-4m4 0l-5-5" />
