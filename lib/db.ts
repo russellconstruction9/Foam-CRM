@@ -95,7 +95,11 @@ export const supabaseHelpers = {
       return data;
     },
     async getById(id: string) {
-      const { data, error } = await supabase.from('customers').select('*').eq('id', id).maybeSingle();
+      const isNumeric = /^\d+$/.test(id);
+      const query = isNumeric
+        ? supabase.from('customers').select('*').eq('numeric_id', parseInt(id))
+        : supabase.from('customers').select('*').eq('id', id);
+      const { data, error } = await query.maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -105,12 +109,20 @@ export const supabaseHelpers = {
       return data;
     },
     async update(id: string, updates: Partial<{ name: string; address: string; email: string; phone: string; notes: string; lat: number; lng: number }>) {
-      const { data, error } = await supabase.from('customers').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select().single();
+      const isNumeric = /^\d+$/.test(id);
+      const query = isNumeric
+        ? supabase.from('customers').update({ ...updates, updated_at: new Date().toISOString() }).eq('numeric_id', parseInt(id))
+        : supabase.from('customers').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id);
+      const { data, error } = await query.select().single();
       if (error) throw error;
       return data;
     },
     async delete(id: string) {
-      const { error } = await supabase.from('customers').delete().eq('id', id);
+      const isNumeric = /^\d+$/.test(id);
+      const query = isNumeric
+        ? supabase.from('customers').delete().eq('numeric_id', parseInt(id))
+        : supabase.from('customers').delete().eq('id', id);
+      const { error } = await query;
       if (error) throw error;
     }
   },

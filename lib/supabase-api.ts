@@ -36,9 +36,9 @@ export interface InventoryItem {
   notes?: string;
 }
 
-function dbCustomerToCustomerInfo(dbCustomer: DbCustomer): CustomerInfo {
+function dbCustomerToCustomerInfo(dbCustomer: any): CustomerInfo {
   return {
-    id: parseInt(dbCustomer.id.replace(/-/g, '').slice(0, 8), 16),
+    id: dbCustomer.numeric_id,
     name: dbCustomer.name,
     address: dbCustomer.address,
     email: dbCustomer.email,
@@ -61,9 +61,9 @@ function customerInfoToDbCustomer(customer: Partial<CustomerInfo>): any {
   };
 }
 
-function dbEmployeeToEmployee(dbEmployee: DbEmployee): Employee {
+function dbEmployeeToEmployee(dbEmployee: any): Employee {
   return {
-    id: parseInt(dbEmployee.id.replace(/-/g, '').slice(0, 8), 16),
+    id: dbEmployee.numeric_id,
     name: dbEmployee.name,
     role: dbEmployee.role,
     pin: dbEmployee.pin,
@@ -102,9 +102,9 @@ function dbInventoryToInventoryItem(dbInventory: DbInventory): InventoryItem {
   };
 }
 
-function dbTaskToTask(dbTask: DbTask): Task {
+function dbTaskToTask(dbTask: any): Task {
   return {
-    id: parseInt(dbTask.id.replace(/-/g, '').slice(0, 8), 16),
+    id: dbTask.numeric_id,
     title: dbTask.title,
     description: dbTask.description || undefined,
     dueDate: dbTask.due_date || undefined,
@@ -115,9 +115,9 @@ function dbTaskToTask(dbTask: DbTask): Task {
   };
 }
 
-function dbAutomationToAutomation(dbAutomation: DbAutomation): Automation {
+function dbAutomationToAutomation(dbAutomation: any): Automation {
   return {
-    id: parseInt(dbAutomation.id.replace(/-/g, '').slice(0, 8), 16),
+    id: dbAutomation.numeric_id,
     name: dbAutomation.name,
     trigger_type: dbAutomation.trigger_type,
     trigger_config: (dbAutomation.trigger_config as any) || {},
