@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CustomerInfo } from './EstimatePDF.tsx';
-import { getEstimatesForCustomer } from '../lib/db.ts';
+import { supabaseApi } from '../lib/supabase-api.ts';
 import MapView from './MapView.tsx';
 
 interface CustomersProps {
@@ -24,7 +24,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, onAddCustomer, onViewC
       
       await Promise.all(customers.map(async (customer) => {
         try {
-          const estimates = await getEstimatesForCustomer(customer.id);
+          const estimates = await supabaseApi.estimates.getByCustomerId(customer.id);
           activityMap[customer.id] = estimates.length;
         } catch (e) {
           console.error(`Failed to get estimates for customer ${customer.id}`, e);

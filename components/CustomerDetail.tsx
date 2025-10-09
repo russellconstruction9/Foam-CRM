@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { CustomerInfo } from './EstimatePDF.tsx';
-import { getEstimatesForCustomer, EstimateRecord, db, JobStatus } from '../lib/db.ts';
+import { EstimateRecord, db, JobStatus } from '../lib/db.ts';
+import { supabaseApi } from '../lib/supabase-api.ts';
 import GoogleDriveManager from './GoogleDriveManager.tsx';
 
 interface CustomerDetailProps {
@@ -57,7 +58,7 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId, onBack, onV
                 if (currentCustomer) {
                     setCustomer(currentCustomer);
                     setEditedNotes(currentCustomer.notes || '');
-                    const customerEstimates = await getEstimatesForCustomer(customerId);
+                    const customerEstimates = await supabaseApi.estimates.getByCustomerId(customerId);
                     setEstimates(customerEstimates.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
                 } else {
                     setCustomer(null);

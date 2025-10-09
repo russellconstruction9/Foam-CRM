@@ -1,6 +1,6 @@
 
-import { db, EstimateRecord as DexieEstimateRecord, InventoryItem as DexieInventoryItem } from './db';
-import { supabaseApi, EstimateRecord, InventoryItem } from './supabase-api';
+import { db, EstimateRecord, InventoryItem } from './db';
+import { supabaseApi } from './supabase-api';
 import { CustomerInfo } from '../components/EstimatePDF';
 import { Employee, Task, Automation } from '../components/types';
 

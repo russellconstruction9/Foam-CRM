@@ -1,4 +1,4 @@
-import { supabaseHelpers } from './db';
+import { supabaseHelpers, EstimateRecord, InventoryItem } from './db';
 import { CustomerInfo, Costs } from '../components/EstimatePDF';
 import { CalculationResults } from '../components/SprayFoamCalculator';
 import { Employee, Task, Automation, TimeEntry, DriveFile } from '../components/types';
@@ -12,29 +12,6 @@ type DbInventory = Database['public']['Tables']['inventory']['Row'];
 type DbTask = Database['public']['Tables']['tasks']['Row'];
 type DbDriveFile = Database['public']['Tables']['drive_files']['Row'];
 type DbAutomation = Database['public']['Tables']['automations']['Row'];
-
-export interface EstimateRecord {
-  id: string;
-  customerId: string;
-  estimatePdf?: Blob;
-  materialOrderPdf?: Blob;
-  invoicePdf?: Blob;
-  estimateNumber: string;
-  calcData: Omit<CalculationResults, 'customer'> & { customer?: CustomerInfo };
-  costsData: Costs;
-  scopeOfWork: string;
-  status: 'estimate' | 'sold' | 'invoiced' | 'paid';
-  createdAt: string;
-}
-
-export interface InventoryItem {
-  id: string;
-  name: string;
-  category: string;
-  quantity: number;
-  unitCost?: number;
-  notes?: string;
-}
 
 function dbCustomerToCustomerInfo(dbCustomer: any): CustomerInfo {
   return {
@@ -80,9 +57,12 @@ function employeeToDbEmployee(employee: Partial<Employee>): any {
 
 function dbEstimateToEstimateRecord(dbEstimate: any): EstimateRecord {
   return {
-    id: dbEstimate.id,
-    customerId: dbEstimate.customer_id,
+    id: dbEstimate.numeric_id,
+    customerId: dbEstimate.customers?.numeric_id || parseInt(dbEstimate.customer_id),
     estimateNumber: dbEstimate.estimate_number,
+    estimatePdf: dbEstimate.estimate_pdf,
+    materialOrderPdf: dbEstimate.material_order_pdf,
+    invoicePdf: dbEstimate.invoice_pdf,
     calcData: dbEstimate.calc_data,
     costsData: dbEstimate.costs_data,
     scopeOfWork: dbEstimate.scope_of_work,
@@ -91,9 +71,9 @@ function dbEstimateToEstimateRecord(dbEstimate: any): EstimateRecord {
   };
 }
 
-function dbInventoryToInventoryItem(dbInventory: DbInventory): InventoryItem {
+function dbInventoryToInventoryItem(dbInventory: any): InventoryItem {
   return {
-    id: dbInventory.id,
+    id: dbInventory.numeric_id,
     name: dbInventory.name,
     category: dbInventory.category,
     quantity: dbInventory.quantity,
@@ -196,8 +176,12 @@ export const supabaseApi = {
       return estimate ? dbEstimateToEstimateRecord(estimate) : null;
     },
 
-    async getByCustomerId(customerId: string): Promise<EstimateRecord[]> {
-      const estimates = await supabaseHelpers.estimates.getByCustomerId(customerId);
+    async getByCustomerId(customerId: string | number): Promise<EstimateRecord[]> {
+      const customer = await supabaseHelpers.customers.getById(String(customerId));
+      if (!customer) {
+        return [];
+      }
+      const estimates = await supabaseHelpers.estimates.getByCustomerId(customer.id);
       return estimates.map(dbEstimateToEstimateRecord);
     },
 
@@ -207,8 +191,13 @@ export const supabaseApi = {
     },
 
     async create(estimate: Omit<EstimateRecord, 'id' | 'createdAt'>): Promise<EstimateRecord> {
+      const customer = await supabaseHelpers.customers.getById(String(estimate.customerId));
+      if (!customer) {
+        throw new Error(`Customer with numeric_id ${estimate.customerId} not found`);
+      }
+
       const dbEstimate = await supabaseHelpers.estimates.create({
-        customer_id: estimate.customerId,
+        customer_id: customer.id,
         estimate_number: estimate.estimateNumber,
         calc_data: estimate.calcData,
         costs_data: estimate.costsData,
@@ -220,7 +209,15 @@ export const supabaseApi = {
 
     async update(id: string, updates: Partial<EstimateRecord>): Promise<EstimateRecord> {
       const updateData: any = {};
-      if (updates.customerId) updateData.customer_id = updates.customerId;
+
+      if (updates.customerId) {
+        const customer = await supabaseHelpers.customers.getById(String(updates.customerId));
+        if (!customer) {
+          throw new Error(`Customer with numeric_id ${updates.customerId} not found`);
+        }
+        updateData.customer_id = customer.id;
+      }
+
       if (updates.estimateNumber) updateData.estimate_number = updates.estimateNumber;
       if (updates.calcData) updateData.calc_data = updates.calcData;
       if (updates.costsData) updateData.costs_data = updates.costsData;
