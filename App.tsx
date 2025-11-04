@@ -205,50 +205,11 @@ const App: React.FC = () => {
       }
   };
 
-  const handleSyncToCalendar = async (job: EstimateRecord) => {
-      console.log("Syncing job to Google Calendar:", job.estimateNumber);
-
-      // Use Zapier MCP to create a Google Calendar event
-      const eventTitle = `${job.calcData.customer.name} - ${job.estimateNumber}`;
-      const eventDescription = `Job: ${job.estimateNumber}\nCustomer: ${job.calcData.customer.name}\nAddress: ${job.calcData.customer.address}\nPhone: ${job.calcData.customer.phone}\nStatus: ${job.status}`;
-      const eventLocation = job.calcData.customer.address;
-
-      // For now, we'll use a placeholder date (you can enhance this based on your schedule)
-      const eventStart = new Date().toISOString();
-      const eventEnd = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // 2 hours later
-
-      console.log(`Calendar Event: ${eventTitle} at ${eventLocation}`);
-      console.log(`Start: ${eventStart}, End: ${eventEnd}`);
-      console.log(`Description: ${eventDescription}`);
-
-      // TODO: Integrate with actual Zapier MCP server to create calendar event
-      // This will require the Zapier MCP client similar to the Google Drive integration
-  };
-
-  const handleSyncAllJobsToCalendar = async () => {
-      console.log(`Syncing ${calendarJobs.length} jobs to Google Calendar...`);
-
-      for (const job of calendarJobs) {
-          const eventTitle = job.name;
-          const eventDescription = `Scheduled Job\nStart: ${job.start}\nEnd: ${job.end}`;
-          const eventStart = new Date(job.start).toISOString();
-          const eventEnd = new Date(job.end).toISOString();
-
-          console.log(`- ${eventTitle} (${job.start} to ${job.end})`);
-
-          // TODO: Integrate with Zapier MCP to create calendar event
-          // This would make actual API calls to Google Calendar via Zapier
-      }
-
-      console.log('All jobs synced to Google Calendar successfully!');
-  };
-
   const automationActionHandlers = {
       createTask: handleAddTask,
       addToSchedule: addCalendarJob,
       sendEmail: handleSendEmail,
       deductInventoryForJob: handleDeductInventoryForJob,
-      syncToCalendar: handleSyncToCalendar,
   };
 
   const loadData = useCallback(async () => {
@@ -577,7 +538,7 @@ const App: React.FC = () => {
     if (currentUser?.role === 'employee') {
       switch (page) {
         case 'employeeDashboard': return <EmployeeDashboard user={currentUser.data} jobs={calendarJobs} employees={employees} onNavigate={setPage} tasks={tasks} onToggleTaskCompletion={handleToggleTaskCompletion} />;
-        case 'schedule': return <JobCalendar jobToSchedule={jobToSchedule} onJobScheduled={() => setJobToSchedule(null)} jobs={calendarJobs} setJobs={setCalendarJobs} employees={employees} currentUser={currentUser} onNavigate={setPage} onSyncToCalendar={handleSyncAllJobsToCalendar} />;
+        case 'schedule': return <JobCalendar jobToSchedule={jobToSchedule} onJobScheduled={() => setJobToSchedule(null)} jobs={calendarJobs} setJobs={setCalendarJobs} employees={employees} currentUser={currentUser} onNavigate={setPage} />;
         case 'timeclock': return <TimeClockPage employees={employees} jobs={jobs} currentUser={currentUser.data} />;
         default: return <EmployeeDashboard user={currentUser.data} jobs={calendarJobs} employees={employees} onNavigate={setPage} tasks={tasks} onToggleTaskCompletion={handleToggleTaskCompletion} />;
       }
@@ -597,8 +558,8 @@ const App: React.FC = () => {
       case 'jobDetail': return currentJob ? <JobDetail job={currentJob} customers={customers} employees={employees} onBack={() => setPage('jobsList')} onUpdateJob={handleUpdateJob} onPrepareInvoice={(job) => { setCurrentJob(job); setPage('invoicing')}} onScheduleJob={handleScheduleJob} onViewCustomer={handleViewCustomer} /> : <div className="p-4">No job selected.</div>;
       case 'materialOrder': return <MaterialOrder soldJobData={soldJobData} onHandInventory={onHandInventory} setOnHandInventory={setOnHandInventory} />;
       case 'invoicing': return currentJob ? <JobCosting calculationResults={currentJob.calcData} onBack={() => setPage('jobDetail')} companyInfo={companyInfo!} isInvoiceMode initialJobData={currentJob} onFinalizeInvoice={handleFinalizeInvoice} defaultCosts={appSettings.defaultCosts} inventoryItems={inventoryItems} /> : <Invoicing soldJobs={jobs.filter(j => j.status === 'sold' || j.status === 'invoiced')} customers={customers} companyInfo={companyInfo!} onPrepareInvoice={(job) => { setCurrentJob(job); setPage('invoicing'); }} />;
-      case 'schedule': return <JobCalendar jobToSchedule={jobToSchedule} onJobScheduled={() => setJobToSchedule(null)} jobs={calendarJobs} setJobs={setCalendarJobs} employees={employees} currentUser={currentUser} onNavigate={setPage} onSyncToCalendar={handleSyncAllJobsToCalendar} />;
-      case 'gantt': return <GanttPage jobs={calendarJobs} setJobs={setCalendarJobs} employees={employees} onNavigate={setPage} onSyncToCalendar={handleSyncAllJobsToCalendar} />;
+      case 'schedule': return <JobCalendar jobToSchedule={jobToSchedule} onJobScheduled={() => setJobToSchedule(null)} jobs={calendarJobs} setJobs={setCalendarJobs} employees={employees} currentUser={currentUser} onNavigate={setPage} />;
+      case 'gantt': return <GanttPage jobs={calendarJobs} setJobs={setCalendarJobs} employees={employees} onNavigate={setPage} />;
       case 'map': return <MapView customers={customers} onUpdateCustomer={handleUpdateCustomer} />;
       case 'settings': return <Settings onSave={handleSaveSettings} currentInfo={companyInfo} appSettings={appSettings} />;
       case 'team': return <TeamPage employees={employees} onAddEmployee={handleAddEmployee} jobs={jobs} />;

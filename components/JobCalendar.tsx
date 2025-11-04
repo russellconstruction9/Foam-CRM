@@ -14,13 +14,11 @@ interface JobCalendarProps {
   employees: Employee[];
   currentUser: CurrentUser;
   onNavigate: (page: Page) => void;
-  onSyncToCalendar?: () => Promise<void>;
 }
 
-const JobCalendar: React.FC<JobCalendarProps> = ({ jobToSchedule, onJobScheduled, jobs, setJobs, employees, currentUser, onNavigate, onSyncToCalendar }) => {
+const JobCalendar: React.FC<JobCalendarProps> = ({ jobToSchedule, onJobScheduled, jobs, setJobs, employees, currentUser, onNavigate }) => {
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Auto-add job coming from external estimate
   useEffect(() => {
@@ -144,21 +142,6 @@ const JobCalendar: React.FC<JobCalendarProps> = ({ jobToSchedule, onJobScheduled
     e.preventDefault(); // Necessary to allow dropping
   };
 
-  const handleSyncAll = async () => {
-    if (!onSyncToCalendar || jobs.length === 0) return;
-
-    setIsSyncing(true);
-    try {
-      await onSyncToCalendar();
-      alert(`Successfully synced ${jobs.length} job(s) to Google Calendar!`);
-    } catch (error) {
-      console.error('Sync failed:', error);
-      alert('Failed to sync to Google Calendar. Check console for details.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const getInitials = (name: string = '') => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
@@ -180,9 +163,6 @@ const JobCalendar: React.FC<JobCalendarProps> = ({ jobToSchedule, onJobScheduled
         onPreviousMonth={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
         onGoToToday={() => setCurrentMonth(new Date())}
         onNavigate={onNavigate}
-        onSyncToCalendar={onSyncToCalendar ? handleSyncAll : undefined}
-        isSyncing={isSyncing}
-        jobsCount={jobs.length}
       />
       <div className="flex-grow overflow-auto p-4">
         <div className="bg-white dark:bg-slate-700 shadow-lg rounded-lg border border-slate-200 dark:border-slate-600 flex flex-col min-h-[600px]">

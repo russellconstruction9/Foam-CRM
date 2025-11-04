@@ -33,8 +33,6 @@ const getActionDescription = (automation: Automation): string => {
             return `Send an email with subject: "${automation.action_config.email_subject}"`;
         case 'update_inventory':
             return `Deduct foam sets from inventory`;
-        case 'sync_to_calendar':
-            return `Sync job to Google Calendar`;
         default:
             return 'Unknown Action';
     }

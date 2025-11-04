@@ -55,7 +55,7 @@ export interface DriveFile {
 
 // --- Automation Types ---
 export type TriggerType = 'new_customer' | 'job_status_updated';
-export type ActionType = 'webhook' | 'create_task' | 'add_to_schedule' | 'send_email' | 'update_inventory' | 'sync_to_calendar';
+export type ActionType = 'webhook' | 'create_task' | 'add_to_schedule' | 'send_email' | 'update_inventory';
 
 export interface Automation {
     id?: number;

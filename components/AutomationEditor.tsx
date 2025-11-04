@@ -88,7 +88,6 @@ const AutomationEditor: React.FC<AutomationEditorProps> = ({ existingAutomation,
                                     <option value="send_email">Send an email</option>
                                     <option value="update_inventory">Update inventory stock</option>
                                     <option value="add_to_schedule">Add job to schedule</option>
-                                    <option value="sync_to_calendar">Sync to Google Calendar</option>
                                     <option value="webhook">Trigger a webhook</option>
                                 </select>
                             </label>
@@ -128,12 +127,6 @@ const AutomationEditor: React.FC<AutomationEditorProps> = ({ existingAutomation,
                                 <div className="mt-2 p-3 bg-slate-100 dark:bg-slate-700 rounded-md">
                                     <p className="text-sm text-slate-700 dark:text-slate-200">This action will automatically deduct the required open-cell and closed-cell foam sets for the job from your inventory.</p>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Requires items named "Open-Cell Set" and "Closed-Cell Set" in your inventory.</p>
-                                </div>
-                            )}
-                            {automation.action_type === 'sync_to_calendar' && (
-                                <div className="mt-2 p-3 bg-slate-100 dark:bg-slate-700 rounded-md">
-                                    <p className="text-sm text-slate-700 dark:text-slate-200">This action will automatically create a Google Calendar event for the job with customer details and location.</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Requires Google Calendar MCP server to be configured.</p>
                                 </div>
                             )}
                         </div>

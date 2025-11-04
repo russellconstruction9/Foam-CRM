@@ -9,9 +9,6 @@ interface ToolbarProps {
   onPreviousMonth: () => void;
   onGoToToday: () => void;
   onNavigate: (page: Page) => void;
-  onSyncToCalendar?: () => void;
-  isSyncing?: boolean;
-  jobsCount?: number;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -21,9 +18,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onPreviousMonth,
   onGoToToday,
   onNavigate,
-  onSyncToCalendar,
-  isSyncing = false,
-  jobsCount = 0,
 }) => {
   const monthYearLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -46,30 +40,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
       
       <ScheduleViewToggle currentView="calendar" onNavigate={onNavigate} />
 
-      <div className="flex items-center gap-2">
-        {onSyncToCalendar && jobsCount > 0 && (
-          <button
-            onClick={onSyncToCalendar}
-            disabled={isSyncing}
-            title="Sync all jobs to Google Calendar"
-            className="rounded-lg bg-green-600 hover:bg-green-700 px-4 py-2 text-sm text-white font-semibold shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            {isSyncing ? 'Syncing...' : 'Sync to Calendar'}
-          </button>
-        )}
-
-        {onAddJob && (
-          <button
-              onClick={onAddJob}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white font-semibold shadow hover:bg-blue-700 transition-colors"
-          >
-              + Add Job
-          </button>
-        )}
-      </div>
+      {onAddJob && (
+        <button
+            onClick={onAddJob}
+            className="w-full sm:w-auto rounded-lg bg-blue-600 px-4 py-2 text-sm text-white font-semibold shadow hover:bg-blue-700 transition-colors"
+        >
+            + Add Job
+        </button>
+      )}
     </div>
   );
 };
