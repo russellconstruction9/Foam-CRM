@@ -12,6 +12,8 @@ dotenv.config();
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 // import { logger, loggerStream } from './utils/logger';
 import authRoutes from './routes/auth.routes';
+import customersRoutes from './routes/customers.routes';
+import jobsRoutes from './routes/jobs.routes';
 import { dbService } from './services/database.service';
 
 const app = express();
@@ -110,6 +112,8 @@ app.get('/health', async (req, res) => {
 
 // API routes
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/customers', customersRoutes);
+app.use('/api/jobs', jobsRoutes);
 
 // Handle 404 for API routes
 app.use('/api/*', notFoundHandler);
