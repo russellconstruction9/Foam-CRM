@@ -29,6 +29,7 @@ import CloudSync from './components/CloudSync.tsx';
 import AutomationPage from './components/AutomationPage.tsx';
 import { processAutomations } from './lib/automations.ts';
 import * as api from './lib/api.ts'; // Import the new API service layer
+import { ApiTester } from './components/ApiTester.tsx';
 
 export type Page = 'dashboard' | 'calculator' | 'costing' | 'customers' | 'customerDetail' | 'jobsList' | 'jobDetail' | 'materialOrder' | 'invoicing' | 'schedule' | 'gantt' | 'map' | 'settings' | 'team' | 'more' | 'timeclock' | 'inventory' | 'employeeDashboard' | 'automations';
 
@@ -549,7 +550,23 @@ const App: React.FC = () => {
     }
 
     switch (page) {
-      case 'dashboard': return <Dashboard jobs={jobs} onViewJob={handleViewJob} onNavigateToFilteredJobs={(status) => { setFilter(status); setPage('jobsList'); }} onNavigate={setPage} tasks={tasks} employees={employees} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} onToggleTaskCompletion={handleToggleTaskCompletion} />;
+      case 'dashboard': return (
+        <div>
+          <ApiTester />
+          <Dashboard 
+            jobs={jobs} 
+            onViewJob={handleViewJob} 
+            onNavigateToFilteredJobs={(status) => { setFilter(status); setPage('jobsList'); }} 
+            onNavigate={setPage} 
+            tasks={tasks} 
+            employees={employees} 
+            onAddTask={handleAddTask} 
+            onUpdateTask={handleUpdateTask} 
+            onDeleteTask={handleDeleteTask} 
+            onToggleTaskCompletion={handleToggleTaskCompletion} 
+          />
+        </div>
+      );
       case 'calculator': return <SprayFoamCalculator onProceedToCosting={handleProceedToCosting} customers={customers} setIsAddCustomerModalOpen={setIsAddCustomerModalOpen} selectedCustomerId={selectedCustomerId} setSelectedCustomerId={setSelectedCustomerId} calculatorInputs={calculatorInputs} setCalculatorInputs={setCalculatorInputs} defaultYields={appSettings.defaultYields} inventoryItems={inventoryItems} defaultCalculatorInputs={DEFAULT_CALCULATOR_INPUTS} />;
       case 'costing': return calculationResults ? <JobCosting calculationResults={calculationResults} onBack={() => setPage('calculator')} companyInfo={companyInfo!} onEstimateCreated={handleEstimateCreated} defaultCosts={appSettings.defaultCosts} inventoryItems={inventoryItems} /> : <div className="p-4">Please calculate a job first.</div>;
       case 'customers': return <Customers customers={customers} onAddCustomer={handleAddCustomer} onViewCustomer={handleViewCustomer} onUpdateCustomer={handleUpdateCustomer} />;
