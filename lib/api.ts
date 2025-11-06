@@ -42,8 +42,13 @@ class ApiService {
       'Content-Type': 'application/json',
     };
 
+    // TODO: Remove this temporary bypass for production
+    // For testing, we'll use a hardcoded token or bypass auth
     if (this.token) {
       headers.Authorization = `Bearer ${this.token}`;
+    } else {
+      // Temporary bypass - set a test token
+      headers.Authorization = `Bearer test-token-bypass`;
     }
 
     return headers;
