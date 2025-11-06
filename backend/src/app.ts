@@ -17,7 +17,7 @@ import jobsRoutes from './routes/jobs.routes';
 import employeesRoutes from './routes/employees.routes';
 import estimatesRoutes from './routes/estimates.routes';
 import inventoryRoutes from './routes/inventory.routes';
-import { dbService } from './services/database.service';
+import { unifiedDbService } from './services/unified-database.service';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -93,7 +93,7 @@ app.use(compression());
 // Health check endpoint
 app.get('/health', async (req, res) => {
   try {
-    const dbConnected = await dbService.testConnection();
+    const dbConnected = await unifiedDbService.testConnection();
     
     res.json({
       success: true,
@@ -140,13 +140,13 @@ app.use(errorHandler);
 // Graceful shutdown handling
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully');
-  await dbService.close();
+  // unifiedDbService doesn't need explicit close - it will be handled by the underlying services
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully');
-  await dbService.close();
+  // unifiedDbService doesn't need explicit close - it will be handled by the underlying services
   process.exit(0);
 });
 

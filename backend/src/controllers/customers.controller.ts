@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
-import { dbService } from '../services/database.service';
-import { supabaseService } from '../services/supabase.service';
+import { unifiedDbService } from '../services/unified-database.service';
 import { AuthenticatedRequest } from '../types';
 
 export interface Customer {
@@ -22,20 +21,12 @@ export class CustomersController {
     static async getAll(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const organizationId = req.organization.id;
-            
-            const query = `
-                SELECT id, organization_id, name, email, phone, address, notes, lat, lng, created_at, updated_at
-                FROM customers 
-                WHERE organization_id = $1 
-                ORDER BY name ASC
-            `;
-            
-            const result = await dbService.query(query, [organizationId]);
+            const customers = await unifiedDbService.getCustomers(organizationId);
             
             res.json({
                 success: true,
-                data: result.rows,
-                count: result.rows.length
+                data: customers,
+                count: customers.length
             });
         } catch (error: any) {
             console.error('Error fetching customers:', error);
@@ -53,15 +44,17 @@ export class CustomersController {
             const { id } = req.params;
             const organizationId = req.organization.id;
             
-            const query = `
-                SELECT id, organization_id, name, email, phone, address, notes, lat, lng, created_at, updated_at
-                FROM customers 
-                WHERE id = $1 AND organization_id = $2
-            `;
+            if (!id) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Customer ID is required'
+                });
+                return;
+            }
             
-            const result = await dbService.query(query, [id, organizationId]);
+            const customer = await unifiedDbService.getCustomerById(id, organizationId);
             
-            if (result.rows.length === 0) {
+            if (!customer) {
                 res.status(404).json({
                     success: false,
                     message: 'Customer not found'
@@ -71,7 +64,7 @@ export class CustomersController {
             
             res.json({
                 success: true,
-                data: result.rows[0]
+                data: customer
             });
         } catch (error: any) {
             console.error('Error fetching customer:', error);
@@ -107,26 +100,21 @@ export class CustomersController {
                 return;
             }
 
-            const query = `
-                INSERT INTO customers (organization_id, name, email, phone, address, notes, lat, lng)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                RETURNING id, organization_id, name, email, phone, address, notes, lat, lng, created_at, updated_at
-            `;
+            const customerData = {
+                name: name.trim(),
+                email: email?.trim() || null,
+                phone: phone?.trim() || null,
+                address: address?.trim() || null,
+                notes: notes?.trim() || null,
+                lat: lat || null,
+                lng: lng || null
+            };
             
-            const result = await dbService.query(query, [
-                organizationId,
-                name.trim(),
-                email?.trim() || null,
-                phone?.trim() || null,
-                address?.trim() || null,
-                notes?.trim() || null,
-                lat || null,
-                lng || null
-            ]);
+            const newCustomer = await unifiedDbService.createCustomer(organizationId, customerData);
             
             res.status(201).json({
                 success: true,
-                data: result.rows[0],
+                data: newCustomer,
                 message: 'Customer created successfully'
             });
         } catch (error: any) {
@@ -174,26 +162,27 @@ export class CustomersController {
                 return;
             }
             
-            const query = `
-                UPDATE customers 
-                SET name = $1, email = $2, phone = $3, address = $4, notes = $5, lat = $6, lng = $7, updated_at = NOW()
-                WHERE id = $8 AND organization_id = $9
-                RETURNING id, organization_id, name, email, phone, address, notes, lat, lng, created_at, updated_at
-            `;
+            if (!id) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Customer ID is required'
+                });
+                return;
+            }
+
+            const customerData = {
+                name: name.trim(),
+                email: email?.trim() || null,
+                phone: phone?.trim() || null,
+                address: address?.trim() || null,
+                notes: notes?.trim() || null,
+                lat: lat || null,
+                lng: lng || null
+            };
             
-            const result = await dbService.query(query, [
-                name.trim(),
-                email?.trim() || null,
-                phone?.trim() || null,
-                address?.trim() || null,
-                notes?.trim() || null,
-                lat || null,
-                lng || null,
-                id,
-                organizationId
-            ]);
+            const updatedCustomer = await unifiedDbService.updateCustomer(id, customerData);
             
-            if (result.rows.length === 0) {
+            if (!updatedCustomer) {
                 res.status(404).json({
                     success: false,
                     message: 'Customer not found'
@@ -203,7 +192,7 @@ export class CustomersController {
             
             res.json({
                 success: true,
-                data: result.rows[0],
+                data: updatedCustomer,
                 message: 'Customer updated successfully'
             });
         } catch (error: any) {
@@ -222,40 +211,43 @@ export class CustomersController {
             const { id } = req.params;
             const organizationId = req.organization.id;
             
-            // Check if customer has associated jobs/estimates
-            const checkQuery = `
-                SELECT COUNT(*) as count FROM (
-                    SELECT 1 FROM jobs WHERE customer_id = $1 AND organization_id = $2
-                    UNION ALL
-                    SELECT 1 FROM estimates WHERE customer_id = $1 AND organization_id = $2
-                ) as related
-            `;
-            
-            const checkResult = await dbService.query(checkQuery, [id, organizationId]);
-            const hasRelatedRecords = parseInt(checkResult.rows[0].count) > 0;
-            
-            if (hasRelatedRecords) {
-                res.status(409).json({
+            if (!id) {
+                res.status(400).json({
                     success: false,
-                    message: 'Cannot delete customer with associated jobs or estimates. Please delete related records first.'
+                    message: 'Customer ID is required'
                 });
                 return;
             }
-            
-            const query = `
-                DELETE FROM customers 
-                WHERE id = $1 AND organization_id = $2
-                RETURNING id
-            `;
-            
-            const result = await dbService.query(query, [id, organizationId]);
-            
-            if (result.rows.length === 0) {
-                res.status(404).json({
-                    success: false,
-                    message: 'Customer not found'
-                });
-                return;
+
+            try {
+                // Check if customer has associated jobs/estimates
+                const checkQuery = `
+                    SELECT COUNT(*) as count FROM (
+                        SELECT 1 FROM jobs WHERE customer_id = $1 AND organization_id = $2
+                        UNION ALL
+                        SELECT 1 FROM estimates WHERE customer_id = $1 AND organization_id = $2
+                    ) as related
+                `;
+                
+                const checkResult = await unifiedDbService.rawQuery(checkQuery, [id, organizationId]);
+                const hasRelatedRecords = parseInt(checkResult.rows[0].count) > 0;
+                
+                if (hasRelatedRecords) {
+                    res.status(409).json({
+                        success: false,
+                        message: 'Cannot delete customer with associated jobs or estimates. Please delete related records first.'
+                    });
+                    return;
+                }
+                
+                await unifiedDbService.deleteCustomer(id);
+            } catch (error: any) {
+                // If raw query fails (likely due to Supabase fallback), try direct delete
+                if (error.message.includes('Raw SQL queries not supported')) {
+                    await unifiedDbService.deleteCustomer(id);
+                } else {
+                    throw error;
+                }
             }
             
             res.json({
@@ -278,6 +270,14 @@ export class CustomersController {
             const { id } = req.params;
             const organizationId = req.organization.id;
             
+            if (!id) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Customer ID is required'
+                });
+                return;
+            }
+
             const query = `
                 SELECT e.id, e.estimate_number, e.status, e.total_amount, e.created_at, e.valid_until,
                        c.name as customer_name
@@ -287,7 +287,7 @@ export class CustomersController {
                 ORDER BY e.created_at DESC
             `;
             
-            const result = await dbService.query(query, [id, organizationId]);
+            const result = await unifiedDbService.rawQuery(query, [id, organizationId]);
             
             res.json({
                 success: true,

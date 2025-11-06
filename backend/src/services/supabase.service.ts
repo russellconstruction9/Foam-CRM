@@ -2,7 +2,11 @@
 import fetch from 'node-fetch';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
+// Prefer a server-side service role key when available for full privileges.
+// Fallback to anon key if service role key is not provided.
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 
 interface SupabaseResponse<T> {
   data?: T[];
@@ -14,15 +18,17 @@ export class SupabaseService {
   private apiKey: string;
 
   constructor() {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      throw new Error('Missing Supabase configuration');
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      throw new Error('Missing Supabase configuration (SUPABASE_URL or SUPABASE_ANON_KEY/SUPABASE_SERVICE_ROLE_KEY)');
     }
     this.baseUrl = `${SUPABASE_URL}/rest/v1`;
-    this.apiKey = SUPABASE_ANON_KEY;
+    this.apiKey = SUPABASE_KEY;
   }
 
   private getHeaders(): Record<string, string> {
     return {
+      // For server-side requests prefer the service role key. Both 'apikey' and
+      // 'Authorization' are set to allow Supabase REST to validate the request.
       'apikey': this.apiKey,
       'Authorization': `Bearer ${this.apiKey}`,
       'Content-Type': 'application/json',
