@@ -14,6 +14,9 @@ import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import authRoutes from './routes/auth.routes';
 import customersRoutes from './routes/customers.routes';
 import jobsRoutes from './routes/jobs.routes';
+import employeesRoutes from './routes/employees.routes';
+import estimatesRoutes from './routes/estimates.routes';
+import inventoryRoutes from './routes/inventory.routes';
 import { dbService } from './services/database.service';
 
 const app = express();
@@ -114,6 +117,9 @@ app.get('/health', async (req, res) => {
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/customers', customersRoutes);
 app.use('/api/jobs', jobsRoutes);
+app.use('/api/employees', employeesRoutes);
+app.use('/api/estimates', estimatesRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Handle 404 for API routes
 app.use('/api/*', notFoundHandler);
