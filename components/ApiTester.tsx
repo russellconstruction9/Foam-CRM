@@ -101,7 +101,7 @@ export const ApiTester: React.FC = () => {
     }}>
       <h3>API Connection Test</h3>
       <p><strong>Status:</strong> {status}</p>
-      <p><strong>Backend URL:</strong> http://localhost:3002</p>
+      <p><strong>Backend URL:</strong> http://localhost:3001</p>
       
       {error && (
         <div style={{ color: 'red', marginTop: '10px' }}>
@@ -160,7 +160,7 @@ export const ApiTester: React.FC = () => {
           Connected: {connected.toString()}
           {'\n'}Error: {error || 'None'}
           {'\n'}Customers Count: {customers.length}
-          {'\n'}API Base URL: http://localhost:3002/api
+          {'\n'}API Base URL: http://localhost:3001/api
         </pre>
       </details>
     </div>

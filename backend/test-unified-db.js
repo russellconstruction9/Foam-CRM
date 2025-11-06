@@ -15,7 +15,7 @@ const testUnifiedService = async () => {
     
     // Test getting customers (this will work with either backend)
     console.log('2. Testing customer retrieval...');
-    const testOrgId = 'test-org-123';
+    const testOrgId = '550e8400-e29b-41d4-a716-446655440000';
     const customers = await unifiedDbService.getCustomers(testOrgId, { limit: 5 });
     console.log('✅ Customer query returned:', customers.length, 'customers');
     

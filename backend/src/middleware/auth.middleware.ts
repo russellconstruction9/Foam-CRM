@@ -26,7 +26,7 @@ export const requireAuth = async (
     if (token === 'test-token-bypass') {
       // Create a test user and organization for development
       const testUser: User = {
-        id: 'test-user-123',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         email: 'test@example.com',
         name: 'Test User',
         avatar_url: '',
@@ -36,7 +36,7 @@ export const requireAuth = async (
       };
 
       const testOrg: Organization = {
-        id: 'test-org-123',
+        id: '550e8400-e29b-41d4-a716-446655440000',
         name: 'Test Organization',
         slug: 'test-org',
         logo_url: '',
@@ -48,7 +48,7 @@ export const requireAuth = async (
       };
 
       const testMember: OrganizationMember = {
-        id: 'test-member-123',
+        id: '550e8400-e29b-41d4-a716-446655440002',
         user_id: testUser.id,
         organization_id: testOrg.id,
         role: 'owner',
