@@ -1,35 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { apiService, customerApi, ApiError } from '../lib/api';
+import { directSupabaseService } from '../lib/supabase-direct';
 
 export const ApiTester: React.FC = () => {
   const [status, setStatus] = useState<string>('Checking connection...');
   const [connected, setConnected] = useState<boolean>(false);
+  const [supabaseConnected, setSupabaseConnected] = useState<boolean>(false);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [supabaseCustomers, setSupabaseCustomers] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const checkConnection = async () => {
     try {
+      // Test backend connection
       const isConnected = await apiService.testConnection();
       setConnected(isConnected);
-      setStatus(isConnected ? 'Backend connected!' : 'Backend not available');
+      
+      // Test direct Supabase connection
+      const supabaseConnectionWorking = await directSupabaseService.testConnection();
+      setSupabaseConnected(supabaseConnectionWorking);
       
       if (isConnected) {
-        // For testing, let's try to get customers without auth first
+        setStatus('Backend connected!');
+        // Try to get customers through backend
         try {
           const customerList = await customerApi.getAll();
           setCustomers(customerList);
-          setStatus('Successfully connected and fetched data!');
+          setStatus('Backend: Successfully connected and fetched data!');
         } catch (apiError) {
           if (apiError instanceof ApiError) {
             if (apiError.status === 401) {
-              setStatus('Connected but needs authentication');
+              setStatus('Backend connected but needs authentication');
               setError('Authentication required - need to login first');
             } else {
-              setError(`API Error: ${apiError.message}`);
+              setError(`Backend API Error: ${apiError.message}`);
             }
           } else {
-            setError(`Unknown error: ${apiError}`);
+            setError(`Backend Unknown error: ${apiError}`);
           }
+        }
+      } else {
+        setStatus('Backend not available');
+      }
+
+      if (supabaseConnectionWorking) {
+        // Try to get customers directly from Supabase
+        try {
+          const supabaseCustomerList = await directSupabaseService.getCustomers();
+          setSupabaseCustomers(supabaseCustomerList);
+          setStatus(prev => prev + ' | Supabase: Direct connection working!');
+        } catch (supabaseError) {
+          setError(prev => `${prev || ''} | Supabase Error: ${supabaseError}`);
         }
       }
     } catch (err) {
@@ -41,7 +62,6 @@ export const ApiTester: React.FC = () => {
 
   const createTestData = async () => {
     try {
-      // This will require auth, but let's see what happens
       const testCustomer = {
         name: 'Test Customer',
         email: 'test@example.com',
@@ -49,15 +69,21 @@ export const ApiTester: React.FC = () => {
         address: '123 Test Street, Test City, TC 12345'
       };
       
-      const newCustomer = await customerApi.create(testCustomer);
-      setStatus('Test customer created successfully!');
-      await checkConnection(); // Refresh the list
-    } catch (apiError) {
-      if (apiError instanceof ApiError) {
-        setError(`Failed to create test data: ${apiError.message}`);
-      } else {
-        setError(`Unknown error creating test data: ${apiError}`);
+      // Try creating through backend first
+      try {
+        const newCustomer = await customerApi.create(testCustomer);
+        setStatus('Backend: Test customer created successfully!');
+      } catch (backendError) {
+        console.log('Backend creation failed, trying direct Supabase:', backendError);
+        
+        // Try creating directly through Supabase
+        const newSupabaseCustomer = await directSupabaseService.createCustomer(testCustomer);
+        setStatus('Supabase: Test customer created successfully!');
       }
+      
+      await checkConnection(); // Refresh the list
+    } catch (error) {
+      setError(`Failed to create test data: ${error}`);
     }
   };
 

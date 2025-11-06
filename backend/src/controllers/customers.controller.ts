@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { dbService } from '../services/database.service';
+import { supabaseService } from '../services/supabase.service';
 import { AuthenticatedRequest } from '../types';
 
 export interface Customer {
