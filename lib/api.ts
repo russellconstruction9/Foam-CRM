@@ -1,6 +1,6 @@
 
 // API Service for connecting frontend to backend
-const API_BASE_URL = 'http://localhost:3002/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 class ApiError extends Error {
   constructor(public status: number, message: string, public data?: any) {
