@@ -11,6 +11,9 @@ export class DatabaseService {
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
+      ssl: {
+        rejectUnauthorized: false
+      }
     });
 
     // Test connection
@@ -49,6 +52,9 @@ export class DatabaseService {
         max: 5,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 2000,
+        ssl: {
+          rejectUnauthorized: false
+        }
       });
       this.tenantPools.set(organizationId, tenantPool);
     }
