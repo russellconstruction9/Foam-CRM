@@ -4,9 +4,14 @@ import { db, EstimateRecord, InventoryItem } from './db';
 import { CustomerInfo } from '../components/EstimatePDF';
 import { Employee, Task, Automation, TimeEntry } from '../components/types';
 
-// Neon database integration (optional)
+// Neon database integration (direct SQL connection)
 let useNeonDb = false;
 let neonInitialized = false;
+
+// Stack Auth integration constants for future use
+const STACK_AUTH_PROJECT_ID = '095d82e0-2079-42dd-a765-3e31745722cf';
+const NEON_REST_API_BASE = 'https://ep-lingering-hall-aeapbk2l.apirest.c-2.us-east-2.aws.neon.tech/neondb/rest/v1';
+const JWKS_URL = 'https://api.stack-auth.com/api/v1/projects/095d82e0-2079-42dd-a765-3e31745722cf/.well-known/jwks.json';
 
 // Check if Neon database is available and configured
 const checkNeonAvailability = () => {
@@ -14,8 +19,8 @@ const checkNeonAvailability = () => {
 };
 
 // This file acts as a service layer for all data operations.
-// It can now use either Dexie.js for local storage or Neon PostgreSQL for cloud storage.
-// The API remains the same, but the implementation switches based on database availability.
+// It uses either Neon PostgreSQL (via direct SQL) or Dexie.js for local storage.
+// Future enhancement: Use Neon REST API with Stack Auth JWT tokens for better security.
 
 // --- Customer Operations ---
 export const getCustomers = async (): Promise<CustomerInfo[]> => {
@@ -26,9 +31,9 @@ export const getCustomers = async (): Promise<CustomerInfo[]> => {
       await initializeDatabase();
       useNeonDb = true;
       neonInitialized = true;
-      console.log('Using Neon PostgreSQL database');
+      console.log('✅ Using Neon PostgreSQL database');
     } catch (error) {
-      console.log('Neon database not available, using local Dexie database:', error);
+      console.log('⚠️ Neon database not available, using local Dexie database:', error);
       useNeonDb = false;
     }
   }
@@ -38,7 +43,7 @@ export const getCustomers = async (): Promise<CustomerInfo[]> => {
       const neonApi = await import('./neon-api');
       return await neonApi.getCustomers();
     } catch (error) {
-      console.error('Neon query failed, falling back to Dexie:', error);
+      console.error('❌ Neon query failed, falling back to Dexie:', error);
       useNeonDb = false;
     }
   }
@@ -52,7 +57,7 @@ export const addCustomer = async (customer: Omit<CustomerInfo, 'id'>): Promise<C
       const neonApi = await import('./neon-api');
       return await neonApi.addCustomer(customer);
     } catch (error) {
-      console.error('Neon insert failed, falling back to Dexie:', error);
+      console.error('❌ Neon insert failed, falling back to Dexie:', error);
       useNeonDb = false;
     }
   }
@@ -67,7 +72,7 @@ export const updateCustomer = async (customer: CustomerInfo): Promise<void> => {
       const neonApi = await import('./neon-api');
       return await neonApi.updateCustomer(customer);
     } catch (error) {
-      console.error('Neon update failed, falling back to Dexie:', error);
+      console.error('❌ Neon update failed, falling back to Dexie:', error);
       useNeonDb = false;
     }
   }
