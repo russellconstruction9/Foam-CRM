@@ -6,26 +6,12 @@ import { Employee, Task, Automation, TimeEntry } from '../components/types';
 
 // Neon database integration (optional)
 let useNeonDb = false;
-let neonApi: any = null;
+let neonInitialized = false;
 
 // Check if Neon database is available and configured
-const initializeNeonDb = async () => {
-  try {
-    if (process.env.DATABASE_URL) {
-      const { initializeDatabase } = await import('./neon-db');
-      await initializeDatabase();
-      neonApi = await import('./neon-api');
-      useNeonDb = true;
-      console.log('Using Neon PostgreSQL database');
-    }
-  } catch (error) {
-    console.log('Neon database not available, using local Dexie database');
-    useNeonDb = false;
-  }
+const checkNeonAvailability = () => {
+  return !!(process.env.DATABASE_URL);
 };
-
-// Initialize on first import
-initializeNeonDb().catch(console.error);
 
 // This file acts as a service layer for all data operations.
 // It can now use either Dexie.js for local storage or Neon PostgreSQL for cloud storage.
@@ -33,24 +19,59 @@ initializeNeonDb().catch(console.error);
 
 // --- Customer Operations ---
 export const getCustomers = async (): Promise<CustomerInfo[]> => {
-  if (useNeonDb && neonApi) {
-    return await neonApi.getCustomers();
+  // Check if Neon should be used
+  if (checkNeonAvailability() && !neonInitialized) {
+    try {
+      const { initializeDatabase } = await import('./neon-db');
+      await initializeDatabase();
+      useNeonDb = true;
+      neonInitialized = true;
+      console.log('Using Neon PostgreSQL database');
+    } catch (error) {
+      console.log('Neon database not available, using local Dexie database:', error);
+      useNeonDb = false;
+    }
   }
+
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.getCustomers();
+    } catch (error) {
+      console.error('Neon query failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  
   return await db.customers.toArray();
 };
 
 export const addCustomer = async (customer: Omit<CustomerInfo, 'id'>): Promise<CustomerInfo> => {
-  if (useNeonDb && neonApi) {
-    return await neonApi.addCustomer(customer);
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.addCustomer(customer);
+    } catch (error) {
+      console.error('Neon insert failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
   }
+  
   const newId = await db.customers.add(customer as CustomerInfo);
   return { ...customer, id: newId };
 };
 
 export const updateCustomer = async (customer: CustomerInfo): Promise<void> => {
-  if (useNeonDb && neonApi) {
-    return await neonApi.updateCustomer(customer);
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.updateCustomer(customer);
+    } catch (error) {
+      console.error('Neon update failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
   }
+  
   await db.customers.put(customer);
 };
 
