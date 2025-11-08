@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-const API_KEY = 'AIzaSyCgcu2OEs4a61Dw6MUGxv93609eNDVM3uI'; // From index.html
+const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
