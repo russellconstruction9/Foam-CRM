@@ -230,30 +230,83 @@ export const deleteEmployee = async (id: number): Promise<void> => {
 
 // --- Time Log Operations ---
 export const getTimeEntriesForJob = async (jobId: number): Promise<TimeEntry[]> => {
-    return db.time_log.where('jobId').equals(jobId).toArray();
-}
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.getTimeEntriesForJob(jobId);
+    } catch (error) {
+      console.error('❌ Neon getTimeEntriesForJob failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  return db.time_log.where('jobId').equals(jobId).toArray();
+};
 
 export const getTimeEntriesForEmployee = async (employeeId: number): Promise<TimeEntry[]> => {
-    return db.time_log.where('employeeId').equals(employeeId).reverse().toArray();
-}
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.getTimeEntriesForEmployee(employeeId);
+    } catch (error) {
+      console.error('❌ Neon getTimeEntriesForEmployee failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  return db.time_log.where('employeeId').equals(employeeId).reverse().toArray();
+};
 
 export const getActiveTimeEntry = async (employeeId: number): Promise<TimeEntry | undefined> => {
-    return db.time_log.where({ employeeId }).filter(entry => !entry.endTime).first();
-}
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.getActiveTimeEntry(employeeId);
+    } catch (error) {
+      console.error('❌ Neon getActiveTimeEntry failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  return db.time_log.where({ employeeId }).filter(entry => !entry.endTime).first();
+};
 
 export const saveTimeEntry = async (entry: TimeEntry): Promise<number> => {
-    return db.time_log.put(entry);
-}
-
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.saveTimeEntry(entry);
+    } catch (error) {
+      console.error('❌ Neon saveTimeEntry failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  return db.time_log.put(entry);
+};
 
 // --- Inventory Operations ---
 export const getInventoryItems = async (): Promise<InventoryItem[]> => {
-    return await db.inventory.toArray();
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.getInventoryItems();
+    } catch (error) {
+      console.error('❌ Neon getInventoryItems failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  return await db.inventory.toArray();
 };
 
 export const addInventoryItem = async (item: Omit<InventoryItem, 'id'>): Promise<InventoryItem> => {
-    const newId = await db.inventory.add(item as InventoryItem);
-    return { ...item, id: newId };
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.addInventoryItem(item);
+    } catch (error) {
+      console.error('❌ Neon addInventoryItem failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  const newId = await db.inventory.add(item as InventoryItem);
+  return { ...item, id: newId };
 };
 
 export const updateInventoryItem = async (item: InventoryItem): Promise<void> => {
