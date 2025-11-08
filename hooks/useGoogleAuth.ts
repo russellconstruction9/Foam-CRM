@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+// Google Drive API doesn't need API key when using OAuth
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
@@ -90,5 +90,5 @@ export const useGoogleAuth = () => {
     const isReady = isGapiLoaded && isGsiLoaded && !!tokenClient;
     const isConfigured = !!clientId;
 
-    return { token, signIn, signOut, isReady, isConfigured, apiKey: API_KEY };
+    return { token, signIn, signOut, isReady, isConfigured };
 };

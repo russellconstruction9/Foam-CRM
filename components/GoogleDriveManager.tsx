@@ -10,7 +10,7 @@ interface GoogleDriveManagerProps {
 const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ customerId }) => {
     const [linkedFiles, setLinkedFiles] = useState<DriveFile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const { token, signIn, signOut, isReady, isConfigured, apiKey } = useGoogleAuth();
+    const { token, signIn, signOut, isReady, isConfigured } = useGoogleAuth();
     
     const loadLinkedFiles = useCallback(async () => {
         setIsLoading(true);
@@ -54,14 +54,13 @@ const GoogleDriveManager: React.FC<GoogleDriveManagerProps> = ({ customerId }) =
         view.setMimeTypes("image/png,image/jpeg,image/jpg,application/pdf,application/vnd.google-apps.document,application/vnd.google-apps.spreadsheet");
         const picker = new window.google.picker.PickerBuilder()
             .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
-            .setAppId(apiKey) // This should be the Project Number, but API key is often used for simplicity
             .setOAuthToken(token.access_token)
             .addView(view)
             .addView(new window.google.picker.DocsUploadView())
             .setCallback(handlePickerCallback)
             .build();
         picker.setVisible(true);
-    }, [isReady, token, apiKey, handlePickerCallback]);
+    }, [isReady, token, handlePickerCallback]);
     
     const handleUnlinkFile = async (fileId: number) => {
         if (window.confirm("Are you sure you want to unlink this file? This will not delete it from Google Drive.")) {
