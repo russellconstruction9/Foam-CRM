@@ -44,7 +44,12 @@ const CloudSync: React.FC<CloudSyncProps> = ({ customers, jobs }) => {
         
         // FIX: Route requests through a CORS proxy to prevent "Failed to fetch" errors caused by browser security policies.
         const PROXY_URL = "https://corsproxy.io/?";
-        const serverUrl = "https://mcp.zapier.com/api/mcp/s/NmJmMGM1ODMtY2U3NS00NmU5LWE3NTEtYTc1MjA5OTZjNGZmOmQ0NzQyYTcxLWEzYzEtNDlmMy1hZTZjLWE5NjZmZjYwNTQxZQ==/mcp";
+        const serverUrl = process.env.ZAPIER_MCP_URL;
+        
+        if (!serverUrl) {
+            throw new Error("Zapier MCP URL is not configured. Please set ZAPIER_MCP_URL environment variable.");
+        }
+
         const client = new Client(
             { name: "foam-crm-ai-client", version: "1.0.0" },
             { capabilities: {} }
@@ -97,7 +102,7 @@ const CloudSync: React.FC<CloudSyncProps> = ({ customers, jobs }) => {
 
         } catch (error) {
             console.error("Backup failed:", error);
-            showStatus('❌ Backup failed. Check console.');
+            showStatus(`❌ Backup failed. ${error instanceof Error ? error.message : 'Check console.'}`);
         } finally {
             setIsLoading(false);
         }

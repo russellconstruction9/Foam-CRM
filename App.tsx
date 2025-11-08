@@ -124,6 +124,17 @@ const App: React.FC = () => {
   // Calendar State - Centralized Source of Truth
   const [calendarJobs, setCalendarJobs] = useState<Job[]>([]);
 
+  // Dynamically load Google Maps script with API key from environment variables
+  useEffect(() => {
+    const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (mapsApiKey && !document.querySelector('script[src*="maps.googleapis.com"]')) {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsApiKey}&v=weekly&libraries=maps,marker,geocoding`;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []);
+
   // Check for initial setup on first load
   useEffect(() => {
     try {

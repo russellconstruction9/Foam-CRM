@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-// Google Drive API doesn't need API key when using OAuth
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY; // From .env file
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
@@ -18,16 +18,7 @@ export const useGoogleAuth = () => {
     const [token, setToken] = useState<any | null>(null);
     const [isGapiLoaded, setIsGapiLoaded] = useState(false);
     const [isGsiLoaded, setIsGsiLoaded] = useState(false);
-    const [clientId, setClientId] = useState<string | null>(null);
-
-    // Get Client ID from meta tag
-    useEffect(() => {
-        const meta = document.querySelector('meta[name="google-client-id"]');
-        const id = meta ? meta.getAttribute('content') : null;
-        if (id && id !== 'YOUR_CLIENT_ID.apps.googleusercontent.com') {
-            setClientId(id);
-        }
-    }, []);
+    const clientId = process.env.GOOGLE_CLIENT_ID;
 
     // Load GAPI (for Picker)
     useEffect(() => {
@@ -90,5 +81,5 @@ export const useGoogleAuth = () => {
     const isReady = isGapiLoaded && isGsiLoaded && !!tokenClient;
     const isConfigured = !!clientId;
 
-    return { token, signIn, signOut, isReady, isConfigured };
+    return { token, signIn, signOut, isReady, isConfigured, apiKey: API_KEY };
 };

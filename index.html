@@ -3,8 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- IMPORTANT: Replace with your actual Google Client ID -->
-    <meta name="google-client-id" content="%VITE_GOOGLE_CLIENT_ID%">
+    <!-- IMPORTANT: Google Client ID is now provided via environment variables -->
     <title>Spray Foam Estimator Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,11 +11,9 @@
         darkMode: 'class',
       }
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=%VITE_GOOGLE_MAPS_API_KEY%&v=weekly&libraries=maps,marker,geocoding"></script>
+    <!-- IMPORTANT: Google scripts are now loaded dynamically with API keys from environment variables -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script async defer src="https://apis.google.com/js/api.js"></script>
-    <script async defer src="https://accounts.google.com/gsi/client"></script>
   <script type="importmap">
 {
   "imports": {
