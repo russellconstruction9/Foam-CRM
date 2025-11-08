@@ -4,24 +4,54 @@ import { db, EstimateRecord, InventoryItem } from './db';
 import { CustomerInfo } from '../components/EstimatePDF';
 import { Employee, Task, Automation, TimeEntry } from '../components/types';
 
+// Neon database integration (optional)
+let useNeonDb = false;
+let neonApi: any = null;
+
+// Check if Neon database is available and configured
+const initializeNeonDb = async () => {
+  try {
+    if (process.env.DATABASE_URL) {
+      const { initializeDatabase } = await import('./neon-db');
+      await initializeDatabase();
+      neonApi = await import('./neon-api');
+      useNeonDb = true;
+      console.log('Using Neon PostgreSQL database');
+    }
+  } catch (error) {
+    console.log('Neon database not available, using local Dexie database');
+    useNeonDb = false;
+  }
+};
+
+// Initialize on first import
+initializeNeonDb().catch(console.error);
+
 // This file acts as a service layer for all data operations.
-// Currently, it uses Dexie.js for local storage.
-// To switch to a backend, you only need to replace the logic inside these functions
-// with HTTP requests (e.g., using fetch or axios) to your API endpoints.
+// It can now use either Dexie.js for local storage or Neon PostgreSQL for cloud storage.
+// The API remains the same, but the implementation switches based on database availability.
 
 // --- Customer Operations ---
 export const getCustomers = async (): Promise<CustomerInfo[]> => {
-    // TODO: Replace with: return await fetch('/api/customers').then(res => res.json());
-    return await db.customers.toArray();
+  if (useNeonDb && neonApi) {
+    return await neonApi.getCustomers();
+  }
+  return await db.customers.toArray();
 };
 
 export const addCustomer = async (customer: Omit<CustomerInfo, 'id'>): Promise<CustomerInfo> => {
-    const newId = await db.customers.add(customer as CustomerInfo);
-    return { ...customer, id: newId };
+  if (useNeonDb && neonApi) {
+    return await neonApi.addCustomer(customer);
+  }
+  const newId = await db.customers.add(customer as CustomerInfo);
+  return { ...customer, id: newId };
 };
 
 export const updateCustomer = async (customer: CustomerInfo): Promise<void> => {
-    await db.customers.put(customer);
+  if (useNeonDb && neonApi) {
+    return await neonApi.updateCustomer(customer);
+  }
+  await db.customers.put(customer);
 };
 
 // --- Job/Estimate Operations ---
