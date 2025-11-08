@@ -2,13 +2,58 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- IMPORTANT: Google Client ID is now provided via environment variables -->
-    <title>Spray Foam Estimator Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FoamCRM" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="FoamCRM" />
+    
+    <!-- Icons -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
+    
+    <!-- iOS Splash Screens -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="apple-touch-startup-image" href="/icons/icon-512x512.svg" />
+    
+    <!-- Android -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-status-bar-style" content="black-translucent" />
+    
+    <!-- Windows -->
+    <meta name="msapplication-TileColor" content="#0ea5e9" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <title>Foam CRM Pro - Spray Foam Estimator</title>
+    
+    <!-- PWA Styles -->
+    <link rel="stylesheet" href="/pwa.css" />
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         darkMode: 'class',
+        theme: {
+          extend: {
+            spacing: {
+              'safe-top': 'env(safe-area-inset-top)',
+              'safe-bottom': 'env(safe-area-inset-bottom)',
+              'safe-left': 'env(safe-area-inset-left)',
+              'safe-right': 'env(safe-area-inset-right)',
+            },
+            height: {
+              'screen-safe': 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+            },
+            minHeight: {
+              'screen-safe': 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+            }
+          }
+        }
       }
     </script>
     <!-- IMPORTANT: Google scripts are now loaded dynamically with API keys from environment variables -->

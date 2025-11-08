@@ -1,0 +1,26 @@
+
+<svg width="152" height="152" viewBox="0 0 152 152" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="76" cy="76" r="72" fill="url(#gradient)" stroke="#1e293b" stroke-width="4"/>
+  <!-- Foam spray pattern -->
+  <g fill="white" opacity="0.9">
+    <!-- Main spray gun -->
+    <rect x="45.6" y="60.800000000000004" width="22.8" height="45.6" rx="4" fill="white"/>
+    <!-- Spray nozzle -->
+    <rect x="38" y="72.96" width="15.200000000000001" height="21.28" rx="2" fill="white"/>
+    <!-- Foam bubbles -->
+    <circle cx="22.8" cy="45.6" r="7.6000000000000005" fill="white"/>
+    <circle cx="30.400000000000002" cy="38" r="4.56" fill="white"/>
+    <circle cx="18.24" cy="53.199999999999996" r="3.8000000000000003" fill="white"/>
+    <circle cx="27.36" cy="56.24" r="6.08" fill="white"/>
+    <!-- Letters F.C -->
+    <text x="83.60000000000001" y="68.4" font-family="Arial, sans-serif" font-size="22.8" font-weight="bold" fill="white">F</text>
+    <text x="83.60000000000001" y="98.8" font-family="Arial, sans-serif" font-size="22.8" font-weight="bold" fill="white">C</text>
+  </g>
+</svg>

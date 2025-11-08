@@ -20,6 +20,7 @@ import TimeClockPage from './components/TimeClockPage.tsx';
 import InventoryPage from './components/InventoryPage.tsx';
 import EmployeeDashboard from './components/EmployeeDashboard.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
+import OfflineIndicator from './components/OfflineIndicator.tsx';
 import { CompanyInfo, CustomerInfo } from './components/EstimatePDF.tsx';
 import { EstimateRecord, JobStatus, InventoryItem } from './lib/db.ts';
 import { CostSettings, DEFAULT_COST_SETTINGS } from './lib/processing.ts';
@@ -28,6 +29,7 @@ import Logo from './components/Logo.tsx';
 import CloudSync from './components/CloudSync.tsx';
 import AutomationPage from './components/AutomationPage.tsx';
 import { processAutomations } from './lib/automations.ts';
+import usePWA from './hooks/usePWA.ts';
 import * as api from './lib/api.ts'; // Import the new API service layer
 
 export type Page = 'dashboard' | 'calculator' | 'costing' | 'customers' | 'customerDetail' | 'jobsList' | 'jobDetail' | 'materialOrder' | 'invoicing' | 'schedule' | 'gantt' | 'map' | 'settings' | 'team' | 'more' | 'timeclock' | 'inventory' | 'employeeDashboard' | 'automations';
@@ -93,6 +95,9 @@ function isJobArray(obj: any): obj is Job[] {
 
 
 const App: React.FC = () => {
+  // Initialize PWA functionality
+  const { isStandalone } = usePWA();
+  
   const [currentUser, setCurrentUser] = useState<CurrentUser>(null);
   const [isInitialSetup, setIsInitialSetup] = useState(false);
   const [page, setPage] = useState<Page>('dashboard');
@@ -657,6 +662,8 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-50 font-sans">
+        {/* PWA Offline Indicator */}
+        <OfflineIndicator />
         
         {currentUser && !isInitialSetup && (
             <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700">
@@ -698,7 +705,7 @@ const App: React.FC = () => {
         )}
 
         <div className="flex-1 flex flex-col overflow-hidden">
-            <main className={`flex-grow overflow-y-auto ${currentUser ? 'pb-24 md:pb-0' : ''}`}>
+            <main className={`flex-grow overflow-y-auto ${currentUser ? 'pb-24 md:pb-0' : ''} ${isStandalone ? 'pt-safe-top pb-safe-bottom' : ''}`}>
                 {renderPage()}
             </main>
         </div>
