@@ -19,6 +19,7 @@ import MorePage from './components/MorePage.tsx';
 import TimeClockPage from './components/TimeClockPage.tsx';
 import InventoryPage from './components/InventoryPage.tsx';
 import EmployeeDashboard from './components/EmployeeDashboard.tsx';
+import DatabaseTest from './components/DatabaseTest.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
 import { CompanyInfo, CustomerInfo } from './components/EstimatePDF.tsx';
 import { EstimateRecord, JobStatus, InventoryItem } from './lib/db.ts';
