@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Employee, TimeEntry } from './types.ts';
-import { EstimateRecord, getActiveTimeEntry, saveTimeEntry } from '../lib/db.ts';
+import { EstimateRecord } from '../lib/db.ts';
+import * as api from '../lib/api.ts';
 
 // Declare google for TypeScript
 declare global {
@@ -35,7 +37,7 @@ const AdminTimeClockView: React.FC<Omit<TimeClockPageProps, 'currentUser'>> = ({
             const entries: Record<number, TimeEntry> = {};
             for (const emp of employees) {
                 if (emp.id) {
-                    const activeEntry = await getActiveTimeEntry(emp.id);
+                    const activeEntry = await api.getActiveTimeEntry(emp.id);
                     if (activeEntry) {
                         entries[emp.id] = activeEntry;
                     }
@@ -202,7 +204,7 @@ const SingleEmployeeTimeClock: React.FC<{ employee: Employee, jobs: EstimateReco
         const fetchActiveEntry = async () => {
             setIsLoading(true);
             if (employee.id) {
-                const entry = await getActiveTimeEntry(employee.id);
+                const entry = await api.getActiveTimeEntry(employee.id);
                 setActiveEntry(entry || null);
             }
             setIsLoading(false);
@@ -238,7 +240,7 @@ const SingleEmployeeTimeClock: React.FC<{ employee: Employee, jobs: EstimateReco
             startLat: position?.coords?.latitude,
             startLng: position?.coords?.longitude,
         };
-        const newId = await saveTimeEntry(newEntry);
+        const newId = await api.saveTimeEntry(newEntry);
         setActiveEntry({ ...newEntry, id: newId });
         showMessage('success', `Successfully clocked in.`);
         setIsSubmitting(false);
@@ -256,7 +258,7 @@ const SingleEmployeeTimeClock: React.FC<{ employee: Employee, jobs: EstimateReco
             endLat: position?.coords?.latitude,
             endLng: position?.coords?.longitude,
         };
-        await saveTimeEntry(updatedEntry);
+        await api.saveTimeEntry(updatedEntry);
         setActiveEntry(null);
         setJobToClockIn('');
         showMessage('success', `Successfully clocked out.`);

@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect } from 'react';
 import { CompanyInfo } from './EstimatePDF.tsx';
 import Logo from './Logo.tsx';
@@ -13,9 +10,10 @@ interface SettingsProps {
     currentInfo?: CompanyInfo | null;
     appSettings: AppSettings;
     isInitialSetup?: boolean;
+    onInitialSetupComplete?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ onSave, currentInfo, appSettings: initialAppSettings, isInitialSetup = false }) => {
+const Settings: React.FC<SettingsProps> = ({ onSave, currentInfo, appSettings: initialAppSettings, isInitialSetup = false, onInitialSetupComplete }) => {
     const [info, setInfo] = useState<CompanyInfo>(currentInfo || {
         name: '',
         address: '',
@@ -57,6 +55,9 @@ const Settings: React.FC<SettingsProps> = ({ onSave, currentInfo, appSettings: i
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSave(info, appSettings);
+        if (isInitialSetup && onInitialSetupComplete) {
+            onInitialSetupComplete();
+        }
     };
 
     const card = "rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm p-6";

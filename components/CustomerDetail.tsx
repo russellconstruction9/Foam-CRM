@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { CustomerInfo } from './EstimatePDF.tsx';
-import { getEstimatesForCustomer, EstimateRecord, db, JobStatus } from '../lib/db.ts';
+import { EstimateRecord, db, JobStatus } from '../lib/db.ts';
+import * as api from '../lib/api.ts';
 import GoogleDriveManager from './GoogleDriveManager.tsx';
 
 interface CustomerDetailProps {
     customerId: number;
+    jobs: EstimateRecord[];
     onBack: () => void;
     onViewJob: (job: EstimateRecord) => void;
     onUpdateCustomer: (customer: CustomerInfo) => void;
@@ -39,26 +41,28 @@ interface DocumentRecord {
 }
 
 
-const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId, onBack, onViewJob, onUpdateCustomer }) => {
+const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId, jobs, onBack, onViewJob, onUpdateCustomer }) => {
     const [customer, setCustomer] = useState<CustomerInfo | null>(null);
-    const [estimates, setEstimates] = useState<EstimateRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<ActiveTab>('jobs');
     
     // State for notes editing
     const [isEditingNotes, setIsEditingNotes] = useState(false);
     const [editedNotes, setEditedNotes] = useState('');
+    
+    // Sort jobs by creation date, newest first
+    const estimates = useMemo(() => {
+        return [...jobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }, [jobs]);
 
     useEffect(() => {
-        const loadData = async () => {
+        const loadCustomer = async () => {
             setIsLoading(true);
             try {
                 const currentCustomer = await db.customers.get(customerId);
                 if (currentCustomer) {
                     setCustomer(currentCustomer);
                     setEditedNotes(currentCustomer.notes || '');
-                    const customerEstimates = await getEstimatesForCustomer(customerId);
-                    setEstimates(customerEstimates.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
                 } else {
                     setCustomer(null);
                 }
@@ -71,7 +75,7 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId, onBack, onV
         };
 
         if (customerId) {
-            loadData();
+            loadCustomer();
         } else {
             setIsLoading(false);
         }

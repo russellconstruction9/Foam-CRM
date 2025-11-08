@@ -1,3 +1,4 @@
+
 import Dexie, { Table } from 'dexie';
 import { CustomerInfo, Costs } from '../components/EstimatePDF.tsx';
 import { CalculationResults } from '../components/SprayFoamCalculator.tsx';
@@ -59,28 +60,6 @@ export class AppDatabase extends Dexie {
 export const db = new AppDatabase();
 
 // --- DB Helper Functions ---
-
-export async function saveEstimate(estimate: Omit<EstimateRecord, 'id' | 'createdAt'>): Promise<EstimateRecord> {
-  const recordToSave: Omit<EstimateRecord, 'id'> = {
-    ...estimate,
-    createdAt: new Date().toISOString()
-  };
-  const id = await db.estimates.add(recordToSave as EstimateRecord);
-  return { ...recordToSave, id };
-}
-
-export async function getEstimatesForCustomer(customerId: number): Promise<EstimateRecord[]> {
-  return db.estimates.where('customerId').equals(customerId).toArray();
-}
-
-export async function getTimeEntriesForJob(jobId: number): Promise<TimeEntry[]> {
-    return db.time_log.where('jobId').equals(jobId).toArray();
-}
-
-export async function getActiveTimeEntry(employeeId: number): Promise<TimeEntry | undefined> {
-    return db.time_log.where({ employeeId }).filter(entry => !entry.endTime).first();
-}
-
-export async function saveTimeEntry(entry: TimeEntry): Promise<number> {
-    return db.time_log.put(entry);
-}
+// All database helper/CRUD functions have been moved to lib/api.ts 
+// to create a centralized service layer. This makes it easier to swap
+// out the local database with a real backend API in the future.

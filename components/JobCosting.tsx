@@ -1,11 +1,12 @@
 
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import type { CalculationResults } from './SprayFoamCalculator.tsx';
 import EstimatePDF, { CompanyInfo, CustomerInfo, Costs } from './EstimatePDF.tsx';
 import MaterialOrderPDF from './MaterialOrderPDF.tsx';
 import QuoteSummaryPDF from './QuoteSummaryPDF.tsx';
 import InvoicePDF from './InvoicePDF.tsx';
-import { getTimeEntriesForJob, InventoryItem, EstimateRecord } from '../lib/db.ts';
+import { InventoryItem, EstimateRecord } from '../lib/db.ts';
 import { calculateCosts, CostSettings } from '../lib/processing.ts';
 import * as api from '../lib/api.ts';
 
@@ -142,7 +143,7 @@ export default function JobCosting({
             setLineItems(costsData.lineItems || []);
         }
         if (initialJobData.id) {
-            getTimeEntriesForJob(initialJobData.id).then(entries => {
+            api.getTimeEntriesForJob(initialJobData.id).then(entries => {
                 const totalTrackedHours = entries.reduce((sum, entry) => sum + (entry.durationHours || 0), 0);
                 if (totalTrackedHours > 0) {
                     setCostSettings(prev => ({ ...prev, laborHours: parseFloat(totalTrackedHours.toFixed(2)) }));

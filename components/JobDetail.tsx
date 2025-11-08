@@ -1,6 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { EstimateRecord, JobStatus, getTimeEntriesForJob } from '../lib/db.ts';
+import { EstimateRecord, JobStatus } from '../lib/db.ts';
+import * as api from '../lib/api.ts';
 import { CustomerInfo } from './EstimatePDF.tsx';
 import { Employee, TimeEntry } from './types.ts';
 
@@ -94,7 +96,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, customers, employees, onBack
     useEffect(() => {
         if (job.id) {
             setIsLoadingLog(true);
-            getTimeEntriesForJob(job.id)
+            api.getTimeEntriesForJob(job.id)
                 .then(log => setTimeLog(log.sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())))
                 .catch(console.error)
                 .finally(() => setIsLoadingLog(false));

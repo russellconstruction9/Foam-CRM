@@ -29,7 +29,6 @@ import CloudSync from './components/CloudSync.tsx';
 import AutomationPage from './components/AutomationPage.tsx';
 import { processAutomations } from './lib/automations.ts';
 import * as api from './lib/api.ts'; // Import the new API service layer
-import { ApiTester } from './components/ApiTester.tsx';
 
 export type Page = 'dashboard' | 'calculator' | 'costing' | 'customers' | 'customerDetail' | 'jobsList' | 'jobDetail' | 'materialOrder' | 'invoicing' | 'schedule' | 'gantt' | 'map' | 'settings' | 'team' | 'more' | 'timeclock' | 'inventory' | 'employeeDashboard' | 'automations';
 
@@ -71,6 +70,8 @@ const DEFAULT_CALCULATOR_INPUTS: CalculatorInputs = {
 };
 
 const EMPTY_CUSTOMER_FORM: Omit<CustomerInfo, 'id'> = { name: '', address: '', email: '', phone: '', notes: '' };
+type CustomerFormErrors = Partial<Record<keyof typeof EMPTY_CUSTOMER_FORM | 'form', string>>;
+
 
 const CALENDAR_STORAGE_KEY = 'jobCalendarJobs';
 
@@ -92,7 +93,8 @@ function isJobArray(obj: any): obj is Job[] {
 
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<CurrentUser>({ role: 'admin' });
+  const [currentUser, setCurrentUser] = useState<CurrentUser>(null);
+  const [isInitialSetup, setIsInitialSetup] = useState(false);
   const [page, setPage] = useState<Page>('dashboard');
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [appSettings, setAppSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
@@ -110,6 +112,8 @@ const App: React.FC = () => {
   const [filter, setFilter] = useState<JobStatus | 'all'>('all');
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState(EMPTY_CUSTOMER_FORM);
+  const [customerFormErrors, setCustomerFormErrors] = useState<CustomerFormErrors>({});
+  const [isSubmittingCustomer, setIsSubmittingCustomer] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -119,6 +123,20 @@ const App: React.FC = () => {
 
   // Calendar State - Centralized Source of Truth
   const [calendarJobs, setCalendarJobs] = useState<Job[]>([]);
+
+  // Check for initial setup on first load
+  useEffect(() => {
+    try {
+        const savedInfo = localStorage.getItem('companyInfo');
+        if (!savedInfo) {
+            setIsInitialSetup(true);
+        }
+    } catch (e) {
+        console.error("Could not read from localStorage for initial setup check.", e);
+        // If localStorage is blocked, we can't proceed with setup.
+        // For a real SaaS, this would be determined by the backend.
+    }
+  }, []);
 
   // Load calendar jobs from localStorage on initial mount
   useEffect(() => {
@@ -217,24 +235,19 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
+        // Load settings from localStorage. In a real SaaS, this would come from the API.
         const savedInfo = localStorage.getItem('companyInfo');
         const savedSettings = localStorage.getItem('appSettings');
-
-        if (savedInfo && savedSettings) {
-            const parsedInfo = JSON.parse(savedInfo);
-            const parsedSettings = JSON.parse(savedSettings);
-            setCompanyInfo(parsedInfo);
-            setAppSettings(parsedSettings);
-            setCalculatorInputs(prev => ({
+        
+        if (savedInfo) setCompanyInfo(JSON.parse(savedInfo));
+        if (savedSettings) {
+             const parsedSettings = JSON.parse(savedSettings);
+             setAppSettings(parsedSettings);
+             setCalculatorInputs(prev => ({
                 ...prev,
                 openCellYield: parsedSettings.defaultYields.openCellYield,
                 closedCellYield: parsedSettings.defaultYields.closedCellYield,
             }));
-        } else {
-            setCompanyInfo(DEFAULT_COMPANY_INFO);
-            setAppSettings(DEFAULT_APP_SETTINGS);
-            localStorage.setItem('companyInfo', JSON.stringify(DEFAULT_COMPANY_INFO));
-            localStorage.setItem('appSettings', JSON.stringify(DEFAULT_APP_SETTINGS));
         }
         
         // Fetch all data in parallel using the new API service
@@ -269,11 +282,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
   useEffect(() => {
     if (appSettings.theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -295,6 +303,12 @@ const App: React.FC = () => {
     setCompanyInfo(info);
     setAppSettings(settings);
   };
+  
+  const handleInitialSetupComplete = () => {
+    setIsInitialSetup(false);
+    loadData();
+    setPage('dashboard');
+  };
 
   const handleAddCustomer = async (customer: Omit<CustomerInfo, 'id'>) => {
     const newCustomerWithId = await api.addCustomer(customer);
@@ -303,14 +317,39 @@ const App: React.FC = () => {
     return newCustomerWithId;
   };
 
+  const validateCustomerForm = (customer: Omit<CustomerInfo, 'id'>): CustomerFormErrors => {
+    const errors: CustomerFormErrors = {};
+    if (!customer.name.trim()) errors.name = "Name is required.";
+    if (!customer.address.trim()) errors.address = "Address is required.";
+    if (customer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) {
+        errors.email = "Invalid email format.";
+    }
+    if (customer.phone && !/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/.test(customer.phone)) {
+        errors.phone = "Invalid phone format. Use xxx-xxx-xxxx.";
+    }
+    return errors;
+  };
+
   const handleSaveNewCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newCustomer.name && newCustomer.address) {
+    const errors = validateCustomerForm(newCustomer);
+    if (Object.keys(errors).length > 0) {
+        setCustomerFormErrors(errors);
+        return;
+    }
+    setCustomerFormErrors({});
+    setIsSubmittingCustomer(true);
+    try {
       const addedCustomer = await handleAddCustomer(newCustomer);
       setIsAddCustomerModalOpen(false);
       setNewCustomer(EMPTY_CUSTOMER_FORM);
       setSelectedCustomerId(addedCustomer.id);
       setPage('calculator');
+    } catch (error) {
+      console.error("Failed to save new customer:", error);
+      setCustomerFormErrors({ form: "Could not save customer. Please try again." });
+    } finally {
+      setIsSubmittingCustomer(false);
     }
   };
 
@@ -424,21 +463,32 @@ const App: React.FC = () => {
   
   const handleFabNewCustomer = () => {
     setNewCustomer(EMPTY_CUSTOMER_FORM);
+    setCustomerFormErrors({});
     setIsAddCustomerModalOpen(true);
   };
 
   const handleLogin = (user: CurrentUser) => {
-    setCurrentUser(user);
-    if (user?.role === 'employee') {
-      setPage('employeeDashboard');
-    } else {
-      setPage('dashboard');
+    if (isInitialSetup && user?.role === 'employee') {
+        alert("The application has not been configured yet. An administrator must log in and complete the initial setup.");
+        return;
     }
+    
+    setCurrentUser(user);
+
+    if (!isInitialSetup) {
+        loadData(); // load data for both admin and employee
+        if (user?.role === 'employee') {
+            setPage('employeeDashboard');
+        } else {
+            setPage('dashboard');
+        }
+    }
+    // If it IS initial setup, and user is admin, we do nothing here. The renderPage function will show the settings screen.
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setPage('dashboard');
+    setPage('dashboard'); // Or any other default page
   };
 
   const handleAddAutomation = async (automation: Omit<Automation, 'id'>) => {
@@ -533,9 +583,26 @@ const App: React.FC = () => {
   );
 
   const renderPage = () => {
-    if (isLoading) return <LoadingScreen />;
+    // Authentication and setup gates
+    if (!currentUser) {
+        return <LoginScreen onLogin={handleLogin} />;
+    }
+
+    if (isInitialSetup && currentUser.role === 'admin') {
+        return <Settings 
+            isInitialSetup 
+            onSave={handleSaveSettings} 
+            appSettings={appSettings} 
+            currentInfo={companyInfo}
+            onInitialSetupComplete={handleInitialSetupComplete}
+        />;
+    }
+    
+    // Data loading and error states
+    if (isLoading && !isInitialSetup) return <LoadingScreen />;
     if (error) return <ErrorScreen message={error} />;
 
+    // Role-based page rendering
     if (currentUser?.role === 'employee') {
       switch (page) {
         case 'employeeDashboard': return <EmployeeDashboard user={currentUser.data} jobs={calendarJobs} employees={employees} onNavigate={setPage} tasks={tasks} onToggleTaskCompletion={handleToggleTaskCompletion} />;
@@ -545,32 +612,21 @@ const App: React.FC = () => {
       }
     }
 
-    if (!currentUser) {
-      return <LoginScreen onLogin={handleLogin} />;
-    }
-
     switch (page) {
-      case 'dashboard': return (
-        <div>
-          <ApiTester />
-          <Dashboard 
-            jobs={jobs} 
-            onViewJob={handleViewJob} 
-            onNavigateToFilteredJobs={(status) => { setFilter(status); setPage('jobsList'); }} 
-            onNavigate={setPage} 
-            tasks={tasks} 
-            employees={employees} 
-            onAddTask={handleAddTask} 
-            onUpdateTask={handleUpdateTask} 
-            onDeleteTask={handleDeleteTask} 
-            onToggleTaskCompletion={handleToggleTaskCompletion} 
-          />
-        </div>
-      );
+      case 'dashboard': return <Dashboard jobs={jobs} onViewJob={handleViewJob} onNavigateToFilteredJobs={(status) => { setFilter(status); setPage('jobsList'); }} onNavigate={setPage} tasks={tasks} employees={employees} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} onToggleTaskCompletion={handleToggleTaskCompletion} />;
       case 'calculator': return <SprayFoamCalculator onProceedToCosting={handleProceedToCosting} customers={customers} setIsAddCustomerModalOpen={setIsAddCustomerModalOpen} selectedCustomerId={selectedCustomerId} setSelectedCustomerId={setSelectedCustomerId} calculatorInputs={calculatorInputs} setCalculatorInputs={setCalculatorInputs} defaultYields={appSettings.defaultYields} inventoryItems={inventoryItems} defaultCalculatorInputs={DEFAULT_CALCULATOR_INPUTS} />;
       case 'costing': return calculationResults ? <JobCosting calculationResults={calculationResults} onBack={() => setPage('calculator')} companyInfo={companyInfo!} onEstimateCreated={handleEstimateCreated} defaultCosts={appSettings.defaultCosts} inventoryItems={inventoryItems} /> : <div className="p-4">Please calculate a job first.</div>;
-      case 'customers': return <Customers customers={customers} onAddCustomer={handleAddCustomer} onViewCustomer={handleViewCustomer} onUpdateCustomer={handleUpdateCustomer} />;
-      case 'customerDetail': return <CustomerDetail customerId={selectedCustomerId as number} onBack={() => setPage('customers')} onViewJob={handleViewJob} onUpdateCustomer={handleUpdateCustomer} />;
+      case 'customers': 
+        // OPTIMIZATION: Calculate customer activity here to avoid re-fetching in the component.
+        const customerActivity = jobs.reduce((acc, job) => {
+            acc[job.customerId] = (acc[job.customerId] || 0) + 1;
+            return acc;
+        }, {} as Record<number, number>);
+        return <Customers customers={customers} onAddCustomer={handleAddCustomer} onViewCustomer={handleViewCustomer} onUpdateCustomer={handleUpdateCustomer} customerActivity={customerActivity} />;
+      case 'customerDetail': 
+        // OPTIMIZATION: Pass filtered jobs to the detail view to prevent re-fetching.
+        const customerJobs = jobs.filter(j => j.customerId === selectedCustomerId);
+        return <CustomerDetail customerId={selectedCustomerId as number} jobs={customerJobs} onBack={() => setPage('customers')} onViewJob={handleViewJob} onUpdateCustomer={handleUpdateCustomer} />;
       case 'jobsList': return <JobsList jobs={jobs} customers={customers} onViewJob={handleViewJob} onDeleteJob={handleDeleteJob} filter={filter} setFilter={setFilter} />;
       case 'jobDetail': return currentJob ? <JobDetail job={currentJob} customers={customers} employees={employees} onBack={() => setPage('jobsList')} onUpdateJob={handleUpdateJob} onPrepareInvoice={(job) => { setCurrentJob(job); setPage('invoicing')}} onScheduleJob={handleScheduleJob} onViewCustomer={handleViewCustomer} /> : <div className="p-4">No job selected.</div>;
       case 'materialOrder': return <MaterialOrder soldJobData={soldJobData} onHandInventory={onHandInventory} setOnHandInventory={setOnHandInventory} />;
@@ -591,7 +647,7 @@ const App: React.FC = () => {
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-50 font-sans">
         
-        {currentUser && (
+        {currentUser && !isInitialSetup && (
             <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700">
                 <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-center h-24 items-center">
                     <Logo />
@@ -636,7 +692,7 @@ const App: React.FC = () => {
             </main>
         </div>
 
-        {currentUser && (
+        {currentUser && !isInitialSetup && (
             <>
                 {currentUser.role === 'admin' && (
                     <CloudSync customers={customers} jobs={jobs} />
@@ -691,15 +747,18 @@ const App: React.FC = () => {
                     <button onClick={() => setIsAddCustomerModalOpen(false)} className="absolute top-4 right-4 text-slate-400">&times;</button>
                     <form onSubmit={handleSaveNewCustomer}>
                         <h2 className="text-xl font-bold">Add New Customer</h2>
+                        {customerFormErrors.form && <p className="mt-2 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 p-2 rounded-md">{customerFormErrors.form}</p>}
                         <div className="mt-4 space-y-3">
-                            <label className="block"><span className="text-sm font-medium">Full Name</span><input type="text" name="name" value={newCustomer.name} onChange={handleNewCustomerChange} className="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600/50 px-3 py-2" required /></label>
-                            <label className="block"><span className="text-sm font-medium">Address</span><input type="text" name="address" value={newCustomer.address} onChange={handleNewCustomerChange} className="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600/50 px-3 py-2" required /></label>
-                             <label className="block"><span className="text-sm font-medium">Email</span><input type="email" name="email" value={newCustomer.email} onChange={handleNewCustomerChange} className="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600/50 px-3 py-2" /></label>
-                              <label className="block"><span className="text-sm font-medium">Phone</span><input type="tel" name="phone" value={newCustomer.phone} onChange={handleNewCustomerChange} className="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600/50 px-3 py-2" /></label>
+                            <div><label className="block"><span className="text-sm font-medium">Full Name</span><input type="text" name="name" value={newCustomer.name} onChange={handleNewCustomerChange} className="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600/50 px-3 py-2" required /></label>{customerFormErrors.name && <p className="text-xs text-red-500 mt-1">{customerFormErrors.name}</p>}</div>
+                            <div><label className="block"><span className="text-sm font-medium">Address</span><input type="text" name="address" value={newCustomer.address} onChange={handleNewCustomerChange} className="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600/50 px-3 py-2" required /></label>{customerFormErrors.address && <p className="text-xs text-red-500 mt-1">{customerFormErrors.address}</p>}</div>
+                            <div><label className="block"><span className="text-sm font-medium">Email</span><input type="email" name="email" value={newCustomer.email} onChange={handleNewCustomerChange} className="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600/50 px-3 py-2" /></label>{customerFormErrors.email && <p className="text-xs text-red-500 mt-1">{customerFormErrors.email}</p>}</div>
+                            <div><label className="block"><span className="text-sm font-medium">Phone</span><input type="tel" name="phone" value={newCustomer.phone} onChange={handleNewCustomerChange} className="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600/50 px-3 py-2" /></label>{customerFormErrors.phone && <p className="text-xs text-red-500 mt-1">{customerFormErrors.phone}</p>}</div>
                         </div>
                         <div className="mt-6 flex justify-end gap-3">
-                            <button type="button" onClick={() => setIsAddCustomerModalOpen(false)}>Cancel</button>
-                            <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white shadow hover:bg-blue-700">Save & Start Estimate</button>
+                            <button type="button" onClick={() => setIsAddCustomerModalOpen(false)} disabled={isSubmittingCustomer}>Cancel</button>
+                            <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white shadow hover:bg-blue-700 disabled:bg-slate-400" disabled={isSubmittingCustomer}>
+                                {isSubmittingCustomer ? 'Saving...' : 'Save & Start Estimate'}
+                            </button>
                         </div>
                     </form>
                 </div>

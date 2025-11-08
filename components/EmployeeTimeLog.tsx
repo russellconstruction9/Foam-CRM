@@ -1,7 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Employee, TimeEntry } from './types.ts';
-import { db } from '../lib/db.ts';
+import * as api from '../lib/api.ts';
 
 interface EmployeeTimeLogProps {
     employee: Employee;
@@ -14,7 +15,7 @@ const EmployeeTimeLog: React.FC<EmployeeTimeLogProps> = ({ employee }) => {
     useEffect(() => {
         if (employee.id) {
             setIsLoading(true);
-            db.time_log.where('employeeId').equals(employee.id).reverse().toArray()
+            api.getTimeEntriesForEmployee(employee.id)
                 .then(setTimeLog)
                 .catch(console.error)
                 .finally(() => setIsLoading(false));

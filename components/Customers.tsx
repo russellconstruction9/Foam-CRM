@@ -1,8 +1,7 @@
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CustomerInfo } from './EstimatePDF.tsx';
-import { getEstimatesForCustomer } from '../lib/db.ts';
 import MapView from './MapView.tsx';
 
 interface CustomersProps {
@@ -10,38 +9,11 @@ interface CustomersProps {
   onAddCustomer: (customer: Omit<CustomerInfo, 'id'>) => void;
   onViewCustomer: (customerId: number) => void;
   onUpdateCustomer: (customer: CustomerInfo) => void;
+  customerActivity: Record<number, number>;
 }
 
-const Customers: React.FC<CustomersProps> = ({ customers, onAddCustomer, onViewCustomer, onUpdateCustomer }) => {
-  const [customerActivity, setCustomerActivity] = useState<Record<number, number>>({});
-  const [isLoadingActivity, setIsLoadingActivity] = useState(true);
+const Customers: React.FC<CustomersProps> = ({ customers, onAddCustomer, onViewCustomer, onUpdateCustomer, customerActivity }) => {
   const [view, setView] = useState<'list' | 'map'>('list');
-
-  useEffect(() => {
-    const fetchActivity = async () => {
-      setIsLoadingActivity(true);
-      const activityMap: Record<number, number> = {};
-      
-      await Promise.all(customers.map(async (customer) => {
-        try {
-          const estimates = await getEstimatesForCustomer(customer.id);
-          activityMap[customer.id] = estimates.length;
-        } catch (e) {
-          console.error(`Failed to get estimates for customer ${customer.id}`, e);
-          activityMap[customer.id] = 0;
-        }
-      }));
-
-      setCustomerActivity(activityMap);
-      setIsLoadingActivity(false);
-    };
-
-    if (customers.length > 0) {
-      fetchActivity();
-    } else {
-      setIsLoadingActivity(false);
-    }
-  }, [customers]);
 
   const card = "rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm";
   
@@ -103,7 +75,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, onAddCustomer, onViewC
                               <p className="text-sm text-slate-600 dark:text-slate-400">{customer.address}</p>
                               <p className="text-sm text-slate-600 dark:text-slate-400">{customer.phone}{customer.phone && customer.email && ' | '}{customer.email}</p>
                             </div>
-                            {!isLoadingActivity && activityCount > 0 && (
+                            {activityCount > 0 && (
                                <span className="flex-shrink-0 ml-4 mt-1 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
                                  {activityCount} saved file{activityCount > 1 ? 's' : ''}
                                </span>
