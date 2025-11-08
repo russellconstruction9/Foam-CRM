@@ -82,42 +82,150 @@ export const updateCustomer = async (customer: CustomerInfo): Promise<void> => {
 
 // --- Job/Estimate Operations ---
 export const getJobs = async (): Promise<EstimateRecord[]> => {
-    return await db.estimates.orderBy('createdAt').reverse().toArray();
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.getJobs();
+    } catch (error) {
+      console.error('❌ Neon getJobs failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  return await db.estimates.orderBy('createdAt').reverse().toArray();
 };
 
 export const addJob = async (jobData: Omit<EstimateRecord, 'id' | 'createdAt'>): Promise<EstimateRecord> => {
-    const recordToSave: Omit<EstimateRecord, 'id'> = {
-        ...jobData,
-        createdAt: new Date().toISOString()
-    };
-    const id = await db.estimates.add(recordToSave as EstimateRecord);
-    return { ...recordToSave, id };
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.addJob(jobData);
+    } catch (error) {
+      console.error('❌ Neon addJob failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  
+  const recordToSave: Omit<EstimateRecord, 'id'> = {
+    ...jobData,
+    createdAt: new Date().toISOString()
+  };
+  const id = await db.estimates.add(recordToSave as EstimateRecord);
+  return { ...recordToSave, id };
 };
 
 export const updateJob = async (jobId: number, updates: Partial<Omit<EstimateRecord, 'id'>>): Promise<EstimateRecord> => {
-    await db.estimates.update(jobId, updates);
-    const updatedJob = await db.estimates.get(jobId);
-    if (!updatedJob) throw new Error("Failed to find job after update.");
-    return updatedJob;
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.updateJob(jobId, updates);
+    } catch (error) {
+      console.error('❌ Neon updateJob failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  
+  await db.estimates.update(jobId, updates);
+  const updatedJob = await db.estimates.get(jobId);
+  if (!updatedJob) throw new Error("Failed to find job after update.");
+  return updatedJob;
 };
 
 export const deleteJob = async (jobId: number): Promise<void> => {
-    await db.estimates.delete(jobId);
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.deleteJob(jobId);
+    } catch (error) {
+      console.error('❌ Neon deleteJob failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  await db.estimates.delete(jobId);
 };
 
 export const getEstimatesForCustomer = async (customerId: number): Promise<EstimateRecord[]> => {
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.getEstimatesForCustomer(customerId);
+    } catch (error) {
+      console.error('❌ Neon getEstimatesForCustomer failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
   return db.estimates.where('customerId').equals(customerId).toArray();
-}
+};
+
+// Helper function to get a single customer by ID
+export const getCustomerById = async (id: number): Promise<CustomerInfo | null> => {
+  if (useNeonDb) {
+    try {
+      const customers = await getCustomers();
+      return customers.find(c => c.id === id) || null;
+    } catch (error) {
+      console.error('❌ Neon getCustomerById failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  return await db.customers.get(id) || null;
+};
 
 
 // --- Employee Operations ---
 export const getEmployees = async (): Promise<Employee[]> => {
-    return await db.employees.toArray();
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.getEmployees();
+    } catch (error) {
+      console.error('❌ Neon getEmployees failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  return await db.employees.toArray();
 };
 
 export const addEmployee = async (employee: Omit<Employee, 'id'>): Promise<Employee> => {
-    const newId = await db.employees.add(employee as Employee);
-    return { ...employee, id: newId };
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.addEmployee(employee);
+    } catch (error) {
+      console.error('❌ Neon addEmployee failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  const newId = await db.employees.add(employee as Employee);
+  return { ...employee, id: newId };
+};
+
+export const updateEmployee = async (id: number, updates: Partial<Omit<Employee, 'id'>>): Promise<Employee> => {
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.updateEmployee(id, updates);
+    } catch (error) {
+      console.error('❌ Neon updateEmployee failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  await db.employees.update(id, updates);
+  const updatedEmployee = await db.employees.get(id);
+  if (!updatedEmployee) throw new Error("Failed to find employee after update.");
+  return updatedEmployee;
+};
+
+export const deleteEmployee = async (id: number): Promise<void> => {
+  if (useNeonDb) {
+    try {
+      const neonApi = await import('./neon-api');
+      return await neonApi.deleteEmployee(id);
+    } catch (error) {
+      console.error('❌ Neon deleteEmployee failed, falling back to Dexie:', error);
+      useNeonDb = false;
+    }
+  }
+  await db.employees.delete(id);
 };
 
 // --- Time Log Operations ---
