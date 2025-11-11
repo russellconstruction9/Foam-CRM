@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { CustomerInfo } from './EstimatePDF.tsx';
-import { EstimateRecord, db, JobStatus } from '../lib/db.ts';
+import { EstimateRecord, JobStatus } from '../lib/db.ts';
 import * as api from '../lib/api.ts';
 import GoogleDriveManager from './GoogleDriveManager.tsx';
 
@@ -56,14 +56,17 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId, jobs, onBac
     }, [jobs]);
 
     useEffect(() => {
+        console.log('CustomerDetail: Loading customer with ID:', customerId);
         const loadCustomer = async () => {
             setIsLoading(true);
             try {
-                const currentCustomer = await db.customers.get(customerId);
+                const currentCustomer = await api.getCustomerById(customerId);
+                console.log('CustomerDetail: Found customer:', currentCustomer);
                 if (currentCustomer) {
                     setCustomer(currentCustomer);
                     setEditedNotes(currentCustomer.notes || '');
                 } else {
+                    console.log('CustomerDetail: No customer found for ID:', customerId);
                     setCustomer(null);
                 }
             } catch (error) {
@@ -77,6 +80,7 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId, jobs, onBac
         if (customerId) {
             loadCustomer();
         } else {
+            console.log('CustomerDetail: No valid customerId provided:', customerId);
             setIsLoading(false);
         }
     }, [customerId]);
@@ -159,7 +163,7 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId, jobs, onBac
             await onUpdateCustomer({ ...customer, notes: editedNotes });
             setIsEditingNotes(false);
             // Re-fetch customer to ensure UI is in sync
-            const updatedCustomer = await db.customers.get(customerId);
+            const updatedCustomer = await api.getCustomerById(customerId);
             setCustomer(updatedCustomer || null);
         }
     };

@@ -158,16 +158,20 @@ export const getEstimatesForCustomer = async (customerId: number): Promise<Estim
 
 // Helper function to get a single customer by ID
 export const getCustomerById = async (id: number): Promise<CustomerInfo | null> => {
+  console.log('API: getCustomerById called with ID:', id);
   if (useNeonDb) {
     try {
       const customers = await getCustomers();
+      console.log('API: All customers from Neon:', customers.map(c => ({ id: c.id, name: c.name })));
       return customers.find(c => c.id === id) || null;
     } catch (error) {
       console.error('❌ Neon getCustomerById failed, falling back to Dexie:', error);
       useNeonDb = false;
     }
   }
-  return await db.customers.get(id) || null;
+  const result = await db.customers.get(id) || null;
+  console.log('API: Customer from Dexie:', result ? { id: result.id, name: result.name } : 'not found');
+  return result;
 };
 
 

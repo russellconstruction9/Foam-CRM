@@ -641,8 +641,12 @@ const App: React.FC = () => {
         return <Customers customers={customers} onAddCustomer={handleAddCustomer} onViewCustomer={handleViewCustomer} onUpdateCustomer={handleUpdateCustomer} customerActivity={customerActivity} />;
       case 'customerDetail': 
         // OPTIMIZATION: Pass filtered jobs to the detail view to prevent re-fetching.
-        const customerJobs = jobs.filter(j => j.customerId === selectedCustomerId);
-        return <CustomerDetail customerId={selectedCustomerId as number} jobs={customerJobs} onBack={() => setPage('customers')} onViewJob={handleViewJob} onUpdateCustomer={handleUpdateCustomer} />;
+        if (typeof selectedCustomerId === 'number') {
+          const customerJobs = jobs.filter(j => j.customerId === selectedCustomerId);
+          return <CustomerDetail customerId={selectedCustomerId} jobs={customerJobs} onBack={() => setPage('customers')} onViewJob={handleViewJob} onUpdateCustomer={handleUpdateCustomer} />;
+        } else {
+          return <div className="p-6"><h1 className="text-xl font-bold text-red-600">Invalid Customer ID</h1><button onClick={() => setPage('customers')} className="mt-4 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">&larr; Back to Customer List</button></div>;
+        }
       case 'jobsList': return <JobsList jobs={jobs} customers={customers} onViewJob={handleViewJob} onDeleteJob={handleDeleteJob} filter={filter} setFilter={setFilter} />;
       case 'jobDetail': return currentJob ? <JobDetail job={currentJob} customers={customers} employees={employees} onBack={() => setPage('jobsList')} onUpdateJob={handleUpdateJob} onPrepareInvoice={(job) => { setCurrentJob(job); setPage('invoicing')}} onScheduleJob={handleScheduleJob} onViewCustomer={handleViewCustomer} /> : <div className="p-4">No job selected.</div>;
       case 'materialOrder': return <MaterialOrder soldJobData={soldJobData} onHandInventory={onHandInventory} setOnHandInventory={setOnHandInventory} />;
