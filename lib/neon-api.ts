@@ -99,26 +99,78 @@ export const deleteEmployee = async (id: number): Promise<void> => {
 };
 
 // --- Simplified implementations to avoid type conflicts ---
+import { EstimateRecord } from './db';
+// --- Job/Estimate Operations ---
 export const getJobs = async (): Promise<EstimateRecord[]> => {
-  // Return empty array for now - will implement proper job handling later
-  return [];
+  await ensureDbInitialized();
+  const results = await sql`SELECT * FROM estimates ORDER BY created_at DESC`;
+  return results.map((row: any) => neonEstimateToRecord(row));
 };
 
-export const addJob = async (jobData: any): Promise<any> => {
-  throw new Error('Not implemented - use Dexie fallback');
+export const addJob = async (jobData: Omit<EstimateRecord, 'id' | 'createdAt'>): Promise<EstimateRecord> => {
+  await ensureDbInitialized();
+  const createdAt = new Date().toISOString();
+  const [result] = await sql`
+    INSERT INTO estimates (
+      customer_id, estimate_pdf, material_order_pdf, invoice_pdf, estimate_number, calc_data, costs_data, scope_of_work, status, created_at
+    ) VALUES (
+      ${jobData.customerId}, ${jobData.estimatePdf}, ${jobData.materialOrderPdf}, ${jobData.invoicePdf || null},
+      ${jobData.estimateNumber}, ${JSON.stringify(jobData.calcData)}, ${JSON.stringify(jobData.costsData)},
+      ${jobData.scopeOfWork}, ${jobData.status}, ${createdAt}
+    ) RETURNING *
+  `;
+  return neonEstimateToRecord(result);
 };
 
-export const updateJob = async (jobId: number, updates: any): Promise<any> => {
-  throw new Error('Not implemented - use Dexie fallback');
+export const updateJob = async (jobId: number, updates: Partial<Omit<EstimateRecord, 'id'>>): Promise<EstimateRecord> => {
+  await ensureDbInitialized();
+  // Build dynamic SET clause
+  const setClauses: string[] = [];
+  const values: any[] = [];
+  if (updates.customerId !== undefined) { setClauses.push(`customer_id = $${values.length + 1}`); values.push(updates.customerId); }
+  if (updates.estimatePdf !== undefined) { setClauses.push(`estimate_pdf = $${values.length + 1}`); values.push(updates.estimatePdf); }
+  if (updates.materialOrderPdf !== undefined) { setClauses.push(`material_order_pdf = $${values.length + 1}`); values.push(updates.materialOrderPdf); }
+  if (updates.invoicePdf !== undefined) { setClauses.push(`invoice_pdf = $${values.length + 1}`); values.push(updates.invoicePdf); }
+  if (updates.estimateNumber !== undefined) { setClauses.push(`estimate_number = $${values.length + 1}`); values.push(updates.estimateNumber); }
+  if (updates.calcData !== undefined) { setClauses.push(`calc_data = $${values.length + 1}`); values.push(JSON.stringify(updates.calcData)); }
+  if (updates.costsData !== undefined) { setClauses.push(`costs_data = $${values.length + 1}`); values.push(JSON.stringify(updates.costsData)); }
+  if (updates.scopeOfWork !== undefined) { setClauses.push(`scope_of_work = $${values.length + 1}`); values.push(updates.scopeOfWork); }
+  if (updates.status !== undefined) { setClauses.push(`status = $${values.length + 1}`); values.push(updates.status); }
+  if (setClauses.length === 0) throw new Error('No fields to update');
+  values.push(jobId);
+  const setClause = setClauses.join(', ');
+  const query = `UPDATE estimates SET ${setClause} WHERE id = $${values.length} RETURNING *`;
+  const [result] = await sql([query, ...values]);
+  return neonEstimateToRecord(result);
 };
 
 export const deleteJob = async (jobId: number): Promise<void> => {
-  throw new Error('Not implemented - use Dexie fallback');
+  await ensureDbInitialized();
+  await sql`DELETE FROM estimates WHERE id = ${jobId}`;
 };
 
 export const getEstimatesForCustomer = async (customerId: number): Promise<EstimateRecord[]> => {
-  return [];
+  await ensureDbInitialized();
+  const results = await sql`SELECT * FROM estimates WHERE customer_id = ${customerId} ORDER BY created_at DESC`;
+  return results.map((row: any) => neonEstimateToRecord(row));
 };
+
+// Helper to convert Neon DB row to EstimateRecord
+function neonEstimateToRecord(row: any): EstimateRecord {
+  return {
+    id: row.id,
+    customerId: row.customer_id,
+    estimatePdf: row.estimate_pdf,
+    materialOrderPdf: row.material_order_pdf,
+    invoicePdf: row.invoice_pdf,
+    estimateNumber: row.estimate_number,
+    calcData: row.calc_data ? JSON.parse(row.calc_data) : {},
+    costsData: row.costs_data ? JSON.parse(row.costs_data) : {},
+    scopeOfWork: row.scope_of_work || '',
+    status: row.status,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : ''
+  };
+}
 
 // --- Inventory Operations ---
 export const getInventoryItems = async (): Promise<InventoryItem[]> => {
