@@ -67,35 +67,37 @@ const MaterialOrder: React.FC<MaterialOrderProps> = ({ soldJobData, onHandInvent
 
     // Update totals when a new job is marked as sold
     useEffect(() => {
-        if (soldJobData?.calcData && soldJobData?.costsData && soldJobData.estimateNumber) {
-            const { ocSets, ccSets } = soldJobData.calcData;
-            const { ocCostPerSet, ccCostPerSet, finalQuote } = soldJobData.costsData;
-            const customerName = soldJobData.calcData.customer?.name || 'N/A';
-            
-            if (lastAddedJob?.number !== soldJobData.estimateNumber) {
-                const jobOcCost = (ocSets || 0) * (ocCostPerSet || 0);
-                const jobCcCost = (ccSets || 0) * (ccCostPerSet || 0);
+        (async () => {
+            if (soldJobData?.calcData && soldJobData?.costsData && soldJobData.estimateNumber) {
+                const { ocSets, ccSets } = soldJobData.calcData;
+                const { ocCostPerSet, ccCostPerSet, finalQuote } = soldJobData.costsData;
+                const customerName = soldJobData.calcData.customer?.name || 'N/A';
+                
+                if (lastAddedJob?.number !== soldJobData.estimateNumber) {
+                    const jobOcCost = (ocSets || 0) * (ocCostPerSet || 0);
+                    const jobCcCost = (ccSets || 0) * (ccCostPerSet || 0);
 
-                const newTotals = {
-                    totalOcSets: totals.totalOcSets + (ocSets || 0),
-                    totalCcSets: totals.totalCcSets + (ccSets || 0),
-                    totalOcCost: totals.totalOcCost + jobOcCost,
-                    totalCcCost: totals.totalCcCost + jobCcCost,
-                    grossRevenue: totals.grossRevenue + (finalQuote || 0),
-                };
-                setTotals(newTotals);
-                await api.saveSoldJobTotals(newTotals);
-                setLastAddedJob({ 
-                    number: soldJobData.estimateNumber, 
-                    name: customerName,
-                    oc: ocSets || 0, 
-                    cc: ccSets || 0,
-                    ocCost: jobOcCost,
-                    ccCost: jobCcCost,
-                    revenue: finalQuote || 0,
-                });
+                    const newTotals = {
+                        totalOcSets: totals.totalOcSets + (ocSets || 0),
+                        totalCcSets: totals.totalCcSets + (ccSets || 0),
+                        totalOcCost: totals.totalOcCost + jobOcCost,
+                        totalCcCost: totals.totalCcCost + jobCcCost,
+                        grossRevenue: totals.grossRevenue + (finalQuote || 0),
+                    };
+                    setTotals(newTotals);
+                    await api.saveSoldJobTotals(newTotals);
+                    setLastAddedJob({ 
+                        number: soldJobData.estimateNumber, 
+                        name: customerName,
+                        oc: ocSets || 0, 
+                        cc: ccSets || 0,
+                        ocCost: jobOcCost,
+                        ccCost: jobCcCost,
+                        revenue: finalQuote || 0,
+                    });
+                }
             }
-        }
+        })();
     }, [soldJobData, totals, lastAddedJob]);
 
     // Save on-hand inventory to localStorage whenever it changes
