@@ -92,7 +92,8 @@ export const usePWA = () => {
         dismissBtn?.addEventListener('click', () => {
           installBanner.style.transform = 'translateY(-100%)';
           setTimeout(() => installBanner.remove(), 300);
-          localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+          // Store dismissal timestamp in Neon
+          api.setPwaInstallDismissed(Date.now());
         });
         
         // Auto-dismiss after 10 seconds
@@ -106,12 +107,13 @@ export const usePWA = () => {
     };
 
     // Check if we should show install promotion
-    const lastDismissed = localStorage.getItem('pwa-install-dismissed');
-    const shouldShow = !lastDismissed || (Date.now() - parseInt(lastDismissed)) > 7 * 24 * 60 * 60 * 1000; // 7 days
-
-    if (shouldShow) {
-      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    }
+    (async () => {
+      const lastDismissed = await api.getPwaInstallDismissed();
+      const shouldShow = !lastDismissed || (Date.now() - lastDismissed) > 7 * 24 * 60 * 60 * 1000; // 7 days
+      if (shouldShow) {
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      }
+    })();
 
     // Listen for app installed event
     window.addEventListener('appinstalled', () => {

@@ -142,40 +142,44 @@ const App: React.FC = () => {
 
   // Check for initial setup on first load
   useEffect(() => {
-    try {
-        const savedInfo = localStorage.getItem('companyInfo');
-        if (!savedInfo) {
-            setIsInitialSetup(true);
+    // Check for initial setup using Neon (replace with actual Neon API call)
+    (async () => {
+      try {
+        const neonInfo = await api.getCompanyInfo();
+        if (!neonInfo) {
+          setIsInitialSetup(true);
         }
-    } catch (e) {
-        console.error("Could not read from localStorage for initial setup check.", e);
-        // If localStorage is blocked, we can't proceed with setup.
-        // For a real SaaS, this would be determined by the backend.
-    }
+      } catch (e) {
+        console.error("Could not read from Neon for initial setup check.", e);
+      }
+    })();
   }, []);
 
   // Load calendar jobs from localStorage on initial mount
   useEffect(() => {
-    try {
-      const savedJobs = localStorage.getItem(CALENDAR_STORAGE_KEY);
-      if (savedJobs) {
-        const parsedJobs = JSON.parse(savedJobs);
-        if (isJobArray(parsedJobs)) {
-          setCalendarJobs(parsedJobs);
+    // Load calendar jobs from Neon
+    (async () => {
+      try {
+        const neonJobs = await api.getCalendarJobs();
+        if (isJobArray(neonJobs)) {
+          setCalendarJobs(neonJobs);
         }
+      } catch (error) {
+        console.error('Failed to load jobs from Neon', error);
       }
-    } catch (error) {
-      console.error('Failed to load jobs from localStorage', error);
-    }
+    })();
   }, []);
 
   // Save calendar jobs to localStorage whenever they change
   useEffect(() => {
-    try {
-        localStorage.setItem(CALENDAR_STORAGE_KEY, JSON.stringify(calendarJobs));
-    } catch (error) {
-      console.error('Failed to save jobs to localStorage', error);
-    }
+    // Save calendar jobs to Neon whenever they change
+    (async () => {
+      try {
+        await api.saveCalendarJobs(calendarJobs);
+      } catch (error) {
+        console.error('Failed to save jobs to Neon', error);
+      }
+    })();
   }, [calendarJobs]);
 
   const addCalendarJob = (job: Omit<Job, 'id'>): Job => {
@@ -251,19 +255,17 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-        // Load settings from localStorage. In a real SaaS, this would come from the API.
-        const savedInfo = localStorage.getItem('companyInfo');
-        const savedSettings = localStorage.getItem('appSettings');
-        
-        if (savedInfo) setCompanyInfo(JSON.parse(savedInfo));
-        if (savedSettings) {
-             const parsedSettings = JSON.parse(savedSettings);
-             setAppSettings(parsedSettings);
-             setCalculatorInputs(prev => ({
-                ...prev,
-                openCellYield: parsedSettings.defaultYields.openCellYield,
-                closedCellYield: parsedSettings.defaultYields.closedCellYield,
-            }));
+        // Load settings from Neon
+        const neonInfo = await api.getCompanyInfo();
+        const neonSettings = await api.getAppSettings();
+        if (neonInfo) setCompanyInfo(neonInfo);
+        if (neonSettings) {
+          setAppSettings(neonSettings);
+          setCalculatorInputs(prev => ({
+            ...prev,
+            openCellYield: neonSettings.defaultYields.openCellYield,
+            closedCellYield: neonSettings.defaultYields.closedCellYield,
+          }));
         }
         
         // Fetch all data in parallel using the new API service
@@ -314,10 +316,13 @@ const App: React.FC = () => {
   }, [appSettings.theme]);
   
   const handleSaveSettings = (info: CompanyInfo, settings: AppSettings) => {
-    localStorage.setItem('companyInfo', JSON.stringify(info));
-    localStorage.setItem('appSettings', JSON.stringify(settings));
-    setCompanyInfo(info);
-    setAppSettings(settings);
+    // Save settings to Neon
+    (async () => {
+      await api.saveCompanyInfo(info);
+      await api.saveAppSettings(settings);
+      setCompanyInfo(info);
+      setAppSettings(settings);
+    })();
   };
   
   const handleInitialSetupComplete = () => {

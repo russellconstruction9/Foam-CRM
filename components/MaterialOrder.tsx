@@ -42,30 +42,27 @@ const MaterialOrder: React.FC<MaterialOrderProps> = ({ soldJobData, onHandInvent
 
     // Load initial data from localStorage on component mount
     useEffect(() => {
-        try {
-            // Load sold totals
-            const savedTotals = localStorage.getItem(SOLD_STORAGE_KEY);
-            if (savedTotals) {
-                const parsed = JSON.parse(savedTotals);
-                setTotals({
-                    totalOcSets: parsed.totalOcSets || 0,
-                    totalCcSets: parsed.totalCcSets || 0,
-                    totalOcCost: parsed.totalOcCost || 0,
-                    totalCcCost: parsed.totalCcCost || 0,
-                    grossRevenue: parsed.grossRevenue || 0,
-                });
-            }
-            // Load on-hand inventory
-            const savedOnHand = localStorage.getItem(ON_HAND_STORAGE_KEY);
-            if (savedOnHand) {
-                const parsed = JSON.parse(savedOnHand);
-                if (isOnHandInventory(parsed)) {
-                    setOnHandInventory(parsed);
+        // Load sold totals and on-hand inventory from Neon
+        (async () => {
+            try {
+                const neonTotals = await api.getSoldJobTotals();
+                if (neonTotals) {
+                    setTotals({
+                        totalOcSets: neonTotals.totalOcSets || 0,
+                        totalCcSets: neonTotals.totalCcSets || 0,
+                        totalOcCost: neonTotals.totalOcCost || 0,
+                        totalCcCost: neonTotals.totalCcCost || 0,
+                        grossRevenue: neonTotals.grossRevenue || 0,
+                    });
                 }
+                const neonOnHand = await api.getOnHandInventory();
+                if (neonOnHand && isOnHandInventory(neonOnHand)) {
+                    setOnHandInventory(neonOnHand);
+                }
+            } catch (error) {
+                console.error("Failed to load data from Neon", error);
             }
-        } catch (error) {
-            console.error("Failed to load data from localStorage", error);
-        }
+        })();
     }, [setOnHandInventory]);
 
     // Update totals when a new job is marked as sold
@@ -87,7 +84,7 @@ const MaterialOrder: React.FC<MaterialOrderProps> = ({ soldJobData, onHandInvent
                     grossRevenue: totals.grossRevenue + (finalQuote || 0),
                 };
                 setTotals(newTotals);
-                localStorage.setItem(SOLD_STORAGE_KEY, JSON.stringify(newTotals));
+                await api.saveSoldJobTotals(newTotals);
                 setLastAddedJob({ 
                     number: soldJobData.estimateNumber, 
                     name: customerName,
@@ -103,33 +100,39 @@ const MaterialOrder: React.FC<MaterialOrderProps> = ({ soldJobData, onHandInvent
 
     // Save on-hand inventory to localStorage whenever it changes
     useEffect(() => {
-        localStorage.setItem(ON_HAND_STORAGE_KEY, JSON.stringify(onHandInventory));
+        (async () => {
+            await api.saveOnHandInventory(onHandInventory);
+        })();
     }, [onHandInventory]);
 
     const handleResetSoldJobTotals = () => {
         if (window.confirm("Are you sure you want to reset all 'sold job' running totals? This will not affect your on-hand inventory numbers.")) {
-            localStorage.removeItem(SOLD_STORAGE_KEY);
-            setTotals({ totalOcSets: 0, totalCcSets: 0, totalOcCost: 0, totalCcCost: 0, grossRevenue: 0 });
-            setLastAddedJob(null);
+            (async () => {
+                await api.resetSoldJobTotals();
+                setTotals({ totalOcSets: 0, totalCcSets: 0, totalOcCost: 0, totalCcCost: 0, grossRevenue: 0 });
+                setLastAddedJob(null);
+            })();
         }
     };
 
     const handleResetOnHandInventory = () => {
         if (window.confirm("Are you sure you want to reset your on-hand inventory to zero? This action cannot be undone.")) {
-            setOnHandInventory({ ocSets: 0, ccSets: 0 });
-            localStorage.removeItem(ON_HAND_STORAGE_KEY);
+            (async () => {
+                setOnHandInventory({ ocSets: 0, ccSets: 0 });
+                await api.resetOnHandInventory();
+            })();
         }
     };
     
     const handleResetAll = () => {
         if (window.confirm("DANGER: Are you sure you want to reset ALL material data to zero? This includes sold job commitments AND on-hand inventory.")) {
-            // Reset sold jobs
-            localStorage.removeItem(SOLD_STORAGE_KEY);
-            setTotals({ totalOcSets: 0, totalCcSets: 0, totalOcCost: 0, totalCcCost: 0, grossRevenue: 0 });
-            setLastAddedJob(null);
-            // Reset on-hand inventory
-            setOnHandInventory({ ocSets: 0, ccSets: 0 });
-            localStorage.removeItem(ON_HAND_STORAGE_KEY);
+            (async () => {
+                await api.resetSoldJobTotals();
+                setTotals({ totalOcSets: 0, totalCcSets: 0, totalOcCost: 0, totalCcCost: 0, grossRevenue: 0 });
+                setLastAddedJob(null);
+                setOnHandInventory({ ocSets: 0, ccSets: 0 });
+                await api.resetOnHandInventory();
+            })();
         }
     };
     

@@ -63,23 +63,21 @@ const Dashboard: React.FC<DashboardProps> = ({
     const [editingTask, setEditingTask] = useState<Omit<Task, 'id' | 'completed' | 'createdAt' | 'completedAt'> | Task | null>(null);
 
     useEffect(() => {
-        const loadData = () => {
+        const loadData = async () => {
             try {
-                const savedOnHand = localStorage.getItem(ON_HAND_STORAGE_KEY);
-                if (savedOnHand) {
-                    const parsed = JSON.parse(savedOnHand);
-                    setOnHand({ ocSets: parsed.ocSets || 0, ccSets: parsed.ccSets || 0 });
+                const neonOnHand = await api.getOnHandInventory();
+                if (neonOnHand) {
+                    setOnHand({ ocSets: neonOnHand.ocSets || 0, ccSets: neonOnHand.ccSets || 0 });
                 } else {
                     setOnHand({ ocSets: 0, ccSets: 0 });
                 }
             } catch (error) {
-                console.error("Failed to load dashboard data from localStorage", error);
+                console.error("Failed to load dashboard data from Neon", error);
             }
         };
 
         loadData();
-        window.addEventListener('storage', loadData);
-        return () => window.removeEventListener('storage', loadData);
+        // Removed localStorage event listener, not needed for Neon
     }, []);
 
     const {
