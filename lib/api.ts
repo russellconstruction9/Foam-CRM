@@ -15,7 +15,8 @@ const JWKS_URL = 'https://api.stack-auth.com/api/v1/projects/095d82e0-2079-42dd-
 
 // Check if Neon database is available and configured
 const checkNeonAvailability = () => {
-  return !!(process.env.DATABASE_URL);
+  // Check for Vite environment variable (browser) or fallback to always try Neon
+  return !!(import.meta.env.VITE_DATABASE_URL || import.meta.env.DATABASE_URL) || true;
 };
 
 // This file acts as a service layer for all data operations.
@@ -27,11 +28,17 @@ export const getCustomers = async (): Promise<CustomerInfo[]> => {
   // Check if Neon should be used
   if (checkNeonAvailability() && !neonInitialized) {
     try {
-      const { initializeDatabase } = await import('./neon-db');
-      await initializeDatabase();
-      useNeonDb = true;
-      neonInitialized = true;
-      console.log('✅ Using Neon PostgreSQL database');
+      // Test REST API connection
+      const { testConnection } = await import('./neon-rest-api');
+      const connected = await testConnection();
+      if (connected) {
+        useNeonDb = true;
+        neonInitialized = true;
+        console.log('✅ Using Neon REST API database');
+      } else {
+        console.log('⚠️ Neon REST API test failed, using local Dexie database');
+        useNeonDb = false;
+      }
     } catch (error) {
       console.log('⚠️ Neon database not available, using local Dexie database:', error);
       useNeonDb = false;
@@ -40,7 +47,8 @@ export const getCustomers = async (): Promise<CustomerInfo[]> => {
 
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      // Use REST API instead of direct SQL (better for browser)
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.getCustomers();
     } catch (error) {
       console.error('❌ Neon query failed, falling back to Dexie:', error);
@@ -54,7 +62,7 @@ export const getCustomers = async (): Promise<CustomerInfo[]> => {
 export const addCustomer = async (customer: Omit<CustomerInfo, 'id'>): Promise<CustomerInfo> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.addCustomer(customer);
     } catch (error) {
       console.error('❌ Neon insert failed, falling back to Dexie:', error);
@@ -69,7 +77,7 @@ export const addCustomer = async (customer: Omit<CustomerInfo, 'id'>): Promise<C
 export const updateCustomer = async (customer: CustomerInfo): Promise<void> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.updateCustomer(customer);
     } catch (error) {
       console.error('❌ Neon update failed, falling back to Dexie:', error);
@@ -84,7 +92,7 @@ export const updateCustomer = async (customer: CustomerInfo): Promise<void> => {
 export const getJobs = async (): Promise<EstimateRecord[]> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.getJobs();
     } catch (error) {
       console.error('❌ Neon getJobs failed, falling back to Dexie:', error);
@@ -97,7 +105,7 @@ export const getJobs = async (): Promise<EstimateRecord[]> => {
 export const addJob = async (jobData: Omit<EstimateRecord, 'id' | 'createdAt'>): Promise<EstimateRecord> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.addJob(jobData);
     } catch (error) {
       console.error('❌ Neon addJob failed, falling back to Dexie:', error);
@@ -116,7 +124,7 @@ export const addJob = async (jobData: Omit<EstimateRecord, 'id' | 'createdAt'>):
 export const updateJob = async (jobId: number, updates: Partial<Omit<EstimateRecord, 'id'>>): Promise<EstimateRecord> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.updateJob(jobId, updates);
     } catch (error) {
       console.error('❌ Neon updateJob failed, falling back to Dexie:', error);
@@ -133,7 +141,7 @@ export const updateJob = async (jobId: number, updates: Partial<Omit<EstimateRec
 export const deleteJob = async (jobId: number): Promise<void> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.deleteJob(jobId);
     } catch (error) {
       console.error('❌ Neon deleteJob failed, falling back to Dexie:', error);
@@ -146,7 +154,7 @@ export const deleteJob = async (jobId: number): Promise<void> => {
 export const getEstimatesForCustomer = async (customerId: number): Promise<EstimateRecord[]> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.getEstimatesForCustomer(customerId);
     } catch (error) {
       console.error('❌ Neon getEstimatesForCustomer failed, falling back to Dexie:', error);
@@ -179,7 +187,7 @@ export const getCustomerById = async (id: number): Promise<CustomerInfo | null> 
 export const getEmployees = async (): Promise<Employee[]> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.getEmployees();
     } catch (error) {
       console.error('❌ Neon getEmployees failed, falling back to Dexie:', error);
@@ -192,7 +200,7 @@ export const getEmployees = async (): Promise<Employee[]> => {
 export const addEmployee = async (employee: Omit<Employee, 'id'>): Promise<Employee> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.addEmployee(employee);
     } catch (error) {
       console.error('❌ Neon addEmployee failed, falling back to Dexie:', error);
@@ -206,7 +214,7 @@ export const addEmployee = async (employee: Omit<Employee, 'id'>): Promise<Emplo
 export const updateEmployee = async (id: number, updates: Partial<Omit<Employee, 'id'>>): Promise<Employee> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.updateEmployee(id, updates);
     } catch (error) {
       console.error('❌ Neon updateEmployee failed, falling back to Dexie:', error);
@@ -222,7 +230,7 @@ export const updateEmployee = async (id: number, updates: Partial<Omit<Employee,
 export const deleteEmployee = async (id: number): Promise<void> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.deleteEmployee(id);
     } catch (error) {
       console.error('❌ Neon deleteEmployee failed, falling back to Dexie:', error);
@@ -236,7 +244,7 @@ export const deleteEmployee = async (id: number): Promise<void> => {
 export const getTimeEntriesForJob = async (jobId: number): Promise<TimeEntry[]> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.getTimeEntriesForJob(jobId);
     } catch (error) {
       console.error('❌ Neon getTimeEntriesForJob failed, falling back to Dexie:', error);
@@ -249,7 +257,7 @@ export const getTimeEntriesForJob = async (jobId: number): Promise<TimeEntry[]> 
 export const getTimeEntriesForEmployee = async (employeeId: number): Promise<TimeEntry[]> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.getTimeEntriesForEmployee(employeeId);
     } catch (error) {
       console.error('❌ Neon getTimeEntriesForEmployee failed, falling back to Dexie:', error);
@@ -262,7 +270,7 @@ export const getTimeEntriesForEmployee = async (employeeId: number): Promise<Tim
 export const getActiveTimeEntry = async (employeeId: number): Promise<TimeEntry | undefined> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.getActiveTimeEntry(employeeId);
     } catch (error) {
       console.error('❌ Neon getActiveTimeEntry failed, falling back to Dexie:', error);
@@ -275,7 +283,7 @@ export const getActiveTimeEntry = async (employeeId: number): Promise<TimeEntry 
 export const saveTimeEntry = async (entry: TimeEntry): Promise<number> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.saveTimeEntry(entry);
     } catch (error) {
       console.error('❌ Neon saveTimeEntry failed, falling back to Dexie:', error);
@@ -289,7 +297,7 @@ export const saveTimeEntry = async (entry: TimeEntry): Promise<number> => {
 export const getInventoryItems = async (): Promise<InventoryItem[]> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.getInventoryItems();
     } catch (error) {
       console.error('❌ Neon getInventoryItems failed, falling back to Dexie:', error);
@@ -302,7 +310,7 @@ export const getInventoryItems = async (): Promise<InventoryItem[]> => {
 export const addInventoryItem = async (item: Omit<InventoryItem, 'id'>): Promise<InventoryItem> => {
   if (useNeonDb) {
     try {
-      const neonApi = await import('./neon-api');
+      const neonApi = await import('./neon-rest-api');
       return await neonApi.addInventoryItem(item);
     } catch (error) {
       console.error('❌ Neon addInventoryItem failed, falling back to Dexie:', error);

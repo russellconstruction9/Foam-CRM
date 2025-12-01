@@ -98,8 +98,6 @@ export const deleteEmployee = async (id: number): Promise<void> => {
   await sql`DELETE FROM employees WHERE id = ${id}`;
 };
 
-// --- Simplified implementations to avoid type conflicts ---
-import { EstimateRecord } from './db';
 // --- Job/Estimate Operations ---
 export const getJobs = async (): Promise<EstimateRecord[]> => {
   await ensureDbInitialized();
@@ -124,23 +122,38 @@ export const addJob = async (jobData: Omit<EstimateRecord, 'id' | 'createdAt'>):
 
 export const updateJob = async (jobId: number, updates: Partial<Omit<EstimateRecord, 'id'>>): Promise<EstimateRecord> => {
   await ensureDbInitialized();
-  // Build dynamic SET clause
-  const setClauses: string[] = [];
-  const values: any[] = [];
-  if (updates.customerId !== undefined) { setClauses.push(`customer_id = $${values.length + 1}`); values.push(updates.customerId); }
-  if (updates.estimatePdf !== undefined) { setClauses.push(`estimate_pdf = $${values.length + 1}`); values.push(updates.estimatePdf); }
-  if (updates.materialOrderPdf !== undefined) { setClauses.push(`material_order_pdf = $${values.length + 1}`); values.push(updates.materialOrderPdf); }
-  if (updates.invoicePdf !== undefined) { setClauses.push(`invoice_pdf = $${values.length + 1}`); values.push(updates.invoicePdf); }
-  if (updates.estimateNumber !== undefined) { setClauses.push(`estimate_number = $${values.length + 1}`); values.push(updates.estimateNumber); }
-  if (updates.calcData !== undefined) { setClauses.push(`calc_data = $${values.length + 1}`); values.push(JSON.stringify(updates.calcData)); }
-  if (updates.costsData !== undefined) { setClauses.push(`costs_data = $${values.length + 1}`); values.push(JSON.stringify(updates.costsData)); }
-  if (updates.scopeOfWork !== undefined) { setClauses.push(`scope_of_work = $${values.length + 1}`); values.push(updates.scopeOfWork); }
-  if (updates.status !== undefined) { setClauses.push(`status = $${values.length + 1}`); values.push(updates.status); }
-  if (setClauses.length === 0) throw new Error('No fields to update');
-  values.push(jobId);
-  const setClause = setClauses.join(', ');
-  const query = `UPDATE estimates SET ${setClause} WHERE id = $${values.length} RETURNING *`;
-  const [result] = await sql([query, ...values]);
+  
+  // Execute individual updates for each field
+  if (updates.customerId !== undefined) {
+    await sql`UPDATE estimates SET customer_id = ${updates.customerId} WHERE id = ${jobId}`;
+  }
+  if (updates.estimatePdf !== undefined) {
+    await sql`UPDATE estimates SET estimate_pdf = ${updates.estimatePdf} WHERE id = ${jobId}`;
+  }
+  if (updates.materialOrderPdf !== undefined) {
+    await sql`UPDATE estimates SET material_order_pdf = ${updates.materialOrderPdf} WHERE id = ${jobId}`;
+  }
+  if (updates.invoicePdf !== undefined) {
+    await sql`UPDATE estimates SET invoice_pdf = ${updates.invoicePdf} WHERE id = ${jobId}`;
+  }
+  if (updates.estimateNumber !== undefined) {
+    await sql`UPDATE estimates SET estimate_number = ${updates.estimateNumber} WHERE id = ${jobId}`;
+  }
+  if (updates.calcData !== undefined) {
+    await sql`UPDATE estimates SET calc_data = ${JSON.stringify(updates.calcData)} WHERE id = ${jobId}`;
+  }
+  if (updates.costsData !== undefined) {
+    await sql`UPDATE estimates SET costs_data = ${JSON.stringify(updates.costsData)} WHERE id = ${jobId}`;
+  }
+  if (updates.scopeOfWork !== undefined) {
+    await sql`UPDATE estimates SET scope_of_work = ${updates.scopeOfWork} WHERE id = ${jobId}`;
+  }
+  if (updates.status !== undefined) {
+    await sql`UPDATE estimates SET status = ${updates.status} WHERE id = ${jobId}`;
+  }
+  
+  // Fetch and return the updated record
+  const [result] = await sql`SELECT * FROM estimates WHERE id = ${jobId}`;
   return neonEstimateToRecord(result);
 };
 
@@ -323,19 +336,85 @@ export const deleteAutomation = async (automationId: number): Promise<void> => {
   await sql`DELETE FROM automations WHERE id = ${automationId}`;
 };
 
-// --- Placeholder implementations for other operations ---
+// --- Time Entry Operations ---
 export const getTimeEntriesForJob = async (jobId: number): Promise<TimeEntry[]> => {
-  return [];
+  await ensureDbInitialized();
+  const results = await sql`SELECT * FROM time_entries WHERE job_id = ${jobId} ORDER BY start_time DESC`;
+  return results.map((row: any) => ({
+    id: row.id,
+    employeeId: row.employee_id,
+    jobId: row.job_id,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    durationHours: row.duration
+  }));
 };
 
 export const getTimeEntriesForEmployee = async (employeeId: number): Promise<TimeEntry[]> => {
-  return [];
+  await ensureDbInitialized();
+  const results = await sql`SELECT * FROM time_entries WHERE employee_id = ${employeeId} ORDER BY start_time DESC`;
+  return results.map((row: any) => ({
+    id: row.id,
+    employeeId: row.employee_id,
+    jobId: row.job_id,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    durationHours: row.duration
+  }));
 };
 
 export const getActiveTimeEntry = async (employeeId: number): Promise<TimeEntry | undefined> => {
-  return undefined;
+  await ensureDbInitialized();
+  const results = await sql`
+    SELECT * FROM time_entries 
+    WHERE employee_id = ${employeeId} AND end_time IS NULL 
+    ORDER BY start_time DESC 
+    LIMIT 1
+  `;
+  if (results.length === 0) return undefined;
+  const row = results[0];
+  return {
+    id: row.id,
+    employeeId: row.employee_id,
+    jobId: row.job_id,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    durationHours: row.duration
+  };
 };
 
 export const saveTimeEntry = async (entry: Omit<TimeEntry, 'id'>): Promise<number> => {
-  return 0;
+  await ensureDbInitialized();
+  const [result] = await sql`
+    INSERT INTO time_entries (employee_id, job_id, start_time, end_time, duration)
+    VALUES (${entry.employeeId}, ${entry.jobId}, ${entry.startTime}, ${entry.endTime || null}, ${entry.durationHours || null})
+    RETURNING id
+  `;
+  return result.id;
+};
+
+export const updateTimeEntry = async (id: number, updates: Partial<Omit<TimeEntry, 'id'>>): Promise<void> => {
+  await ensureDbInitialized();
+  
+  // Simplified update - just update the fields that are provided
+  if (updates.endTime !== undefined) {
+    await sql`UPDATE time_entries SET end_time = ${updates.endTime} WHERE id = ${id}`;
+  }
+  if (updates.durationHours !== undefined) {
+    await sql`UPDATE time_entries SET duration = ${updates.durationHours} WHERE id = ${id}`;
+  }
+  if (updates.startTime !== undefined) {
+    await sql`UPDATE time_entries SET start_time = ${updates.startTime} WHERE id = ${id}`;
+  }
+  if (updates.employeeId !== undefined) {
+    await sql`UPDATE time_entries SET employee_id = ${updates.employeeId} WHERE id = ${id}`;
+  }
+  if (updates.jobId !== undefined) {
+    await sql`UPDATE time_entries SET job_id = ${updates.jobId} WHERE id = ${id}`;
+  }
+};
+
+export const deleteTimeEntry = async (id: number): Promise<void> => {
+  await ensureDbInitialized();
+  await sql`DELETE FROM time_entries WHERE id = ${id}`;
 };

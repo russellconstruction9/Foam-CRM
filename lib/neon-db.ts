@@ -2,7 +2,11 @@ import { neon } from '@neondatabase/serverless';
 
 // Get the database URL from environment variables
 const getDatabaseUrl = (): string => {
-  const url = process.env.DATABASE_URL;
+  // Try Vite environment variables first (for browser), then Node.js (for server)
+  const url = import.meta.env.VITE_DATABASE_URL || 
+              import.meta.env.DATABASE_URL ||
+              'postgresql://neondb_owner:npg_bm2JQV4zFqha@ep-lingering-hall-aeapbk2l-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require';
+  
   if (!url) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
